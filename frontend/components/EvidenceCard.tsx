@@ -75,7 +75,7 @@ function NewsTable({ news }: { news: NewsEvidence[] }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Filter headlines or sources…"
-          className="h-9 w-full rounded-lg border border-line bg-base/70 px-3 text-xs text-fg outline-none transition-all duration-300 ease-in-out placeholder:text-slate-600 hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] focus:border-brand-to/70 sm:w-64"
+          className="h-9 w-full rounded-lg border border-line bg-ink/70 px-3 text-xs text-fg outline-none transition-all duration-300 ease-in-out placeholder:text-slate-600 hover:border-violet/50 hover:shadow-[0_0_20px_rgba(113,52,235,0.15)] focus:border-violet sm:w-64"
         />
       </div>
       {rows.length === 0 ? (
@@ -93,11 +93,15 @@ function NewsTable({ news }: { news: NewsEvidence[] }) {
             </thead>
             <tbody className="divide-y divide-white/5">
               {rows.map((n, i) => (
-                <tr key={`${n.published_at}-${i}`} className="transition-colors duration-200 hover:bg-indigo-500/[0.06]">
+                <tr
+                  key={`${n.published_at}-${i}`}
+                  className="animate-rise-in transition-colors duration-200 hover:bg-violet/[0.06]"
+                  style={{ animationDelay: `${Math.min(i, 12) * 50}ms` }}
+                >
                   <td className={`${td} font-mono text-xs whitespace-nowrap text-muted`}>{formatDateTime(n.published_at)}</td>
                   <td className={`${td} max-w-[480px]`}>
                     {n.url ? (
-                      <a href={n.url} target="_blank" rel="noopener noreferrer" className="font-medium text-fg hover:text-brand-to hover:underline">
+                      <a href={n.url} target="_blank" rel="noopener noreferrer" className="font-medium text-fg hover:text-teal hover:underline">
                         {n.title}
                       </a>
                     ) : (
@@ -138,7 +142,11 @@ function TradesTable({ trades }: { trades: Trade[] }) {
           {trades.map((t, i) => {
             const tone = t.pnl > 0 ? "text-gain" : t.pnl < 0 ? "text-loss" : "text-muted";
             return (
-              <tr key={i} className="transition-colors duration-200 hover:bg-indigo-500/[0.06]">
+              <tr
+                key={i}
+                className="animate-rise-in transition-colors duration-200 hover:bg-violet/[0.06]"
+                style={{ animationDelay: `${Math.min(i, 12) * 50}ms` }}
+              >
                 <td className={`${td} whitespace-nowrap text-slate-300`}>{formatDate(t.entry_date)}</td>
                 <td className={`${td} whitespace-nowrap text-slate-300`}>{t.exit_date ? formatDate(t.exit_date) : <span className="text-warn">Open</span>}</td>
                 <td className={td}>

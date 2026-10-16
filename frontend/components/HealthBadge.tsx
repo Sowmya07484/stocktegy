@@ -12,7 +12,7 @@ const STYLES = {
 export function HealthBadge() {
   if (USE_SAMPLE_DATA) {
     return (
-      <span className="inline-flex items-center gap-2 rounded-full border border-warn/30 bg-warn/10 px-3 py-1 text-xs text-warn">
+      <span className="inline-flex items-center gap-2 rounded-full bg-black/35 px-3 py-1 text-xs text-warn ring-1 ring-warn/40">
         <span className="h-2 w-2 rounded-full bg-warn" />
         Sample data · API not connected
       </span>
@@ -25,7 +25,7 @@ function LiveHealthBadge() {
   const state = useHealth();
   const s = STYLES[state];
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-line bg-panel px-3 py-1 text-xs text-muted">
+    <span className="inline-flex items-center gap-2 rounded-full bg-black/35 px-3 py-1 text-xs text-white/85 ring-1 ring-white/15">
       <span className={`h-2 w-2 rounded-full ${s.dot}`} />
       {s.text}
     </span>

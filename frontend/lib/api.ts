@@ -5,9 +5,9 @@ import type {
   MarketDataResponse,
 } from "@/types/backtest";
 
-// Empty string = same origin, routed to FastAPI by the rewrite in next.config.ts.
-// Set NEXT_PUBLIC_API_URL to call the backend directly (requires CORS on FastAPI).
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+// Requests go to this origin (e.g. POST /api/backtest) and next.config.ts forwards them
+// to NEXT_PUBLIC_API_BASE_URL, so the backend URL is configured in one place.
+const API_BASE = "";
 const DEFAULT_TIMEOUT_MS = 60_000;
 
 export class ApiError extends Error {

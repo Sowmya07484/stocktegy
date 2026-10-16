@@ -9,7 +9,7 @@ export function Card({
 }) {
   return (
     <section
-      className={`rounded-2xl border border-white/[0.08] bg-[#121222]/80 shadow-[0_8px_40px_-12px_rgb(0_0_0/0.6),inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur-xl transition-all duration-300 ease-in-out hover:-translate-y-0.5 hover:border-indigo-500/30 hover:shadow-[0_16px_48px_-12px_rgb(0_0_0/0.7),0_0_30px_rgba(99,102,241,0.1)] ${className}`}
+      className={`rounded-[22px] border border-line bg-panel/85 shadow-[0_8px_40px_-12px_rgb(0_0_0/0.6),inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur-xl transition-all duration-300 ease-in-out hover:-translate-y-0.5 hover:border-violet/30 hover:shadow-[0_16px_48px_-12px_rgb(0_0_0/0.7),0_0_30px_rgba(113,52,235,0.1)] ${className}`}
     >
       {children}
     </section>
@@ -48,7 +48,7 @@ export function Segmented<T extends string>({
   ariaLabel: string;
 }) {
   return (
-    <div role="tablist" aria-label={ariaLabel} className="inline-flex rounded-lg border border-line bg-base/60 p-0.5">
+    <div role="tablist" aria-label={ariaLabel} className="inline-flex rounded-lg border border-line bg-ink/60 p-0.5">
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -59,7 +59,7 @@ export function Segmented<T extends string>({
             onClick={() => onChange(o.value)}
             className={`rounded-md px-3 py-1 text-xs font-medium transition-all duration-300 ease-in-out active:scale-95 ${
               active
-                ? "bg-gradient-to-r from-brand-from to-brand-to text-white shadow-[0_0_16px_-4px_rgb(168_85_247/0.7)]"
+                ? "bg-gradient-to-r from-brand-from to-brand-to text-white shadow-[0_0_16px_-4px_rgb(113_52_235/0.7)]"
                 : "text-muted hover:text-fg"
             }`}
           >
@@ -121,7 +121,7 @@ export function Slider({
     <div className={`group/slider relative flex h-6 items-center ${disabled ? "opacity-50" : ""}`}>
       <div className="absolute inset-x-0 h-1.5 rounded-full bg-white/[0.08] shadow-[inset_0_1px_2px_rgb(0_0_0/0.5)]" />
       <div
-        className="absolute left-0 h-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)] transition-shadow duration-300 group-hover/slider:shadow-[0_0_16px_rgba(139,92,246,0.85)] group-active/slider:shadow-[0_0_22px_rgba(139,92,246,1)]"
+        className="absolute left-0 h-1.5 rounded-full bg-gradient-to-r from-violet to-teal shadow-[0_0_10px_rgba(113,52,235,0.6)] transition-shadow duration-300 group-hover/slider:shadow-[0_0_16px_rgba(113,52,235,0.85)] group-active/slider:shadow-[0_0_22px_rgba(113,52,235,1)]"
         style={{ width: fillWidth }}
       />
       <input

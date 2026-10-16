@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { BacktestRequest, BacktestResponse, MaCrossoverParams, OhlcvBar } from "@/types/backtest";
-import { EquityChart } from "./charts/EquityChart";
+import { EquityChart, EquityLegend } from "./charts/EquityChart";
 import { PriceChart, PriceLegend } from "./charts/PriceChart";
 import { Card, CardHeader, EmptyState, Segmented, Spinner } from "./ui";
 
@@ -38,7 +38,14 @@ export function ChartsCard({ result, request, bars, loading, priceLoading, price
     if (view === "equity") {
       if (!result) return <EmptyState>Run a backtest to plot the equity curve.</EmptyState>;
       if (!result.equity_curve.length) return <EmptyState>The backtest returned no equity points.</EmptyState>;
-      return <EquityChart data={result.equity_curve} initialCapital={result.metrics.initial_capital} />;
+      return (
+        <EquityChart
+          data={result.equity_curve}
+          initialCapital={result.metrics.initial_capital}
+          // the benchmark would duplicate the strategy line for buy & hold itself
+          bars={result.strategy === "buy_and_hold" ? null : bars}
+        />
+      );
     }
     if (priceLoading) {
       return (
@@ -56,7 +63,7 @@ export function ChartsCard({ result, request, bars, loading, priceLoading, price
     <Card>
       <CardHeader
         title={view === "equity" ? "Equity curve" : `${request?.ticker ?? "Price"} · candles & signals`}
-        subtitle={view === "equity" ? "Portfolio equity (₹) by date over the backtest window" : ma ? "Daily OHLC with strategy moving averages and trade entries/exits" : "Daily OHLC with trade entries/exits"}
+        subtitle={view === "equity" ? "Portfolio equity (₹) by date, against buying and holding the same stock" : ma ? "Daily OHLC with strategy moving averages and trade entries/exits" : "Daily OHLC with trade entries/exits"}
         right={
           <Segmented<View>
             ariaLabel="Chart view"
@@ -69,6 +76,11 @@ export function ChartsCard({ result, request, bars, loading, priceLoading, price
           />
         }
       />
+      {view === "equity" && result?.equity_curve.length && !loading ? (
+        <div className="px-5 pt-4 sm:px-6">
+          <EquityLegend showBenchmark={!!bars?.length && result.strategy !== "buy_and_hold"} />
+        </div>
+      ) : null}
       {view === "price" && bars?.length && !priceLoading ? (
         <div className="px-5 pt-4 sm:px-6">
           <PriceLegend shortWindow={shortWindow} longWindow={longWindow} />

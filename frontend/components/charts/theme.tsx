@@ -1,15 +1,16 @@
-// Chart tokens. Line pair validated with dataviz validate_palette.js (dark, surface #121222):
-// all six checks pass. Candle green/red fail CVD (ΔE 4.6), so up = hollow, down = filled.
+// Chart tokens, checked with dataviz validate_palette.js on surface #1A1222.
+// SMA pair passes all checks. Teal/coral pass CVD (ΔE 12.2); candles still use hollow up / filled down.
 export const CHART = {
-  surface: "#121222",
+  surface: "#1A1222",
   grid: "rgb(255 255 255 / 0.06)",
-  axis: "#64748b",
-  equity: "#a855f7",
+  axis: "rgb(255 255 255 / 0.45)",
+  equity: "#16ccc5", // strategy line
+  benchmark: "rgb(255 255 255 / 0.5)", // buy & hold, dashed
   smaShort: "#8b5cf6",
   smaLong: "#d97706",
-  up: "#34d399",
-  down: "#fb7185",
-  reference: "rgb(148 163 184 / 0.5)",
+  up: "#16ccc5",
+  down: "#ff6b6b",
+  reference: "rgb(255 255 255 / 0.3)",
 } as const;
 
 export const axisProps = {
@@ -41,7 +42,7 @@ export function formatInrAxis(v: number): string {
 
 export function TooltipShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="min-w-44 rounded-xl border border-white/15 bg-[#0d0d1a]/95 px-3.5 py-2.5 text-xs shadow-2xl backdrop-blur-md">
+    <div className="min-w-44 rounded-xl border border-white/15 bg-[#160F1C]/95 px-3.5 py-2.5 text-xs shadow-2xl backdrop-blur-md">
       <p className="mb-1.5 font-medium text-slate-300">{title}</p>
       <div className="flex flex-col gap-1">{children}</div>
     </div>

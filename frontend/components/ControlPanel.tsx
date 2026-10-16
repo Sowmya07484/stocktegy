@@ -8,10 +8,11 @@ import { Slider, Spinner } from "./ui";
 interface Props {
   onRun: (payload: BacktestRequest) => void;
   isLoading: boolean;
+  initialTicker?: string;
 }
 
 const inputCls =
-  "h-11 w-full rounded-xl border border-line bg-base/70 px-3.5 text-sm text-fg outline-none transition-all duration-300 ease-in-out placeholder:text-slate-600 hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] focus:border-indigo-500 focus:shadow-[0_0_24px_rgba(99,102,241,0.2)] focus:ring-1 focus:ring-indigo-500/50 disabled:opacity-50 disabled:hover:border-line disabled:hover:shadow-none";
+  "h-11 w-full rounded-xl border border-line bg-ink/70 px-3.5 text-sm text-fg outline-none transition-all duration-300 ease-in-out placeholder:text-slate-600 hover:border-violet/50 hover:shadow-[0_0_20px_rgba(113,52,235,0.15)] focus:border-violet focus:shadow-[0_0_24px_rgba(113,52,235,0.2)] focus:ring-1 focus:ring-violet/50 disabled:opacity-50 disabled:hover:border-line disabled:hover:shadow-none";
 const labelCls = "mb-1.5 block text-xs font-medium text-muted";
 
 /** Mounted only while a run is in flight, so it starts from zero on every run. */
@@ -25,8 +26,8 @@ function ElapsedTimer() {
   return <span className="font-mono text-xs tabular-nums text-white/70">{((now - start) / 1000).toFixed(1)}s</span>;
 }
 
-export function ControlPanel({ onRun, isLoading }: Props) {
-  const [ticker, setTicker] = useState("RELIANCE.NS");
+export function ControlPanel({ onRun, isLoading, initialTicker }: Props) {
+  const [ticker, setTicker] = useState(initialTicker ?? "RELIANCE.NS");
   const [startDate, setStartDate] = useState("2025-01-01");
   const [endDate, setEndDate] = useState("2025-12-31");
   const [capital, setCapital] = useState(100_000);
@@ -64,7 +65,7 @@ export function ControlPanel({ onRun, isLoading }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="relative rounded-2xl border border-white/[0.08] bg-panel-raised/80 p-5 shadow-[0_20px_60px_-20px_rgb(99_102_241/0.45)] backdrop-blur-xl transition-all duration-300 ease-in-out hover:border-white/15 hover:shadow-[0_24px_80px_-20px_rgb(99_102_241/0.6)] sm:p-6"
+      className="relative rounded-[24px] border border-line bg-panel/85 p-5 shadow-[0_20px_60px_-20px_rgb(113_52_235/0.45)] backdrop-blur-xl transition-all duration-300 ease-in-out hover:border-white/15 hover:shadow-[0_24px_80px_-20px_rgb(113_52_235/0.6)] sm:p-6"
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
         <div className="lg:col-span-3">
@@ -129,7 +130,7 @@ export function ControlPanel({ onRun, isLoading }: Props) {
       <div className="mt-5 flex flex-col gap-5 border-t border-line pt-5 lg:flex-row lg:items-end">
         <div className={`grid flex-1 grid-cols-1 gap-5 ${def.params.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
           {def.params.length === 0 && (
-            <div className="rounded-xl border border-line bg-base/40 px-4 py-4 text-sm text-muted sm:col-span-2">
+            <div className="rounded-xl border border-line bg-ink/40 px-4 py-4 text-sm text-muted sm:col-span-2">
               No parameters. This baseline buys on the first trading day and holds to the end date.
             </div>
           )}
@@ -138,12 +139,12 @@ export function ControlPanel({ onRun, isLoading }: Props) {
             return (
               <div
                 key={p.key}
-                className="rounded-xl border border-line bg-base/40 px-4 pt-3 pb-4 transition-all duration-300 ease-in-out hover:border-indigo-500/50 hover:bg-base/60 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)]"
+                className="rounded-xl border border-line bg-ink/40 px-4 pt-3 pb-4 transition-all duration-300 ease-in-out hover:border-violet/50 hover:bg-ink/60 hover:shadow-[0_0_20px_rgba(113,52,235,0.15)]"
               >
                 <div className="mb-2.5 flex items-center justify-between">
                   <label htmlFor={p.key} className="text-xs font-medium text-muted">{p.label}</label>
                   <span
-                    className="rounded-md border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 font-mono text-xs tabular-nums text-indigo-100 transition-all duration-300"
+                    className="rounded-md border border-violet/30 bg-violet/10 px-2 py-0.5 font-mono text-xs tabular-nums text-white transition-all duration-300"
                   >
                     {value}{p.unit ?? ""}
                   </span>
@@ -167,7 +168,7 @@ export function ControlPanel({ onRun, isLoading }: Props) {
             type="submit"
             disabled={!!validationError || isLoading}
             aria-busy={isLoading}
-            className={`group relative flex h-11 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-xl bg-gradient-to-r from-brand-from via-purple-500 to-brand-from bg-[length:200%_100%] bg-left px-5 text-sm font-semibold text-white shadow-[0_0_24px_-6px_rgb(168_85_247/0.9)] transition-all duration-300 ease-in-out enabled:hover:bg-right enabled:hover:animate-glow-pulse enabled:active:scale-95 disabled:cursor-not-allowed ${
+            className={`group relative flex h-11 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-full bg-gradient-to-r from-violet via-[#9b6bff] to-violet bg-[length:200%_100%] bg-left px-5 text-sm font-semibold text-white shadow-[0_0_24px_-6px_rgb(113_52_235/0.9)] transition-all duration-300 ease-in-out enabled:hover:bg-right enabled:hover:animate-glow-pulse enabled:active:scale-95 disabled:cursor-not-allowed ${
               isLoading ? "animate-glow-pulse" : "disabled:opacity-40 disabled:shadow-none"
             }`}
           >
