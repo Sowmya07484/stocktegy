@@ -1,3 +1,12 @@
 venv/
 data/*.csv
 __pycache__/
+
+# Python virtual environments
+laya-venv/
+__pycache__/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.local.example
