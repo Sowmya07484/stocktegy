@@ -1,0 +1,285 @@
+@import "tailwindcss";
+
+/* Design tokens: dark violet + teal enterprise look (see UI & Motion Spec §1). */
+@theme inline {
+  /* named ink, not base: a `base` colour would collide with Tailwind's text-base font size */
+  --color-ink: #130d18; /* --bg-ink: dark sections, dashboard background */
+  --color-panel: #1a1222; /* dashboard panels */
+  --color-panel-raised: #221a2c;
+  --color-line: rgb(255 255 255 / 0.06);
+  --color-muted: rgb(255 255 255 / 0.65); /* --text-dim: body copy */
+  --color-eyebrow: rgb(255 255 255 / 0.45);
+  --color-fg: #ffffff;
+
+  --color-violet: #7134eb; /* --violet-bright: nav gradient start, glows */
+  --color-violet-deep: #401d68; /* --bg-violet: hero, pillars panel */
+  --color-violet-2: #3e1f66; /* raised violet panels */
+  --color-cta-violet: #3b1a61; /* secondary pill buttons */
+  --color-teal: #16ccc5; /* accent word, nav gradient end, chart lines */
+
+  --color-brand-from: #7134eb;
+  --color-brand-to: #16ccc5;
+  --color-highlight: #16ccc5;
+  --color-gain: #16ccc5;
+  --color-loss: #ff6b6b; /* soft coral so losses don't fight the violet */
+  --color-warn: #fbbf24;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-fade-in: fade-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-glow-pulse: glow-pulse 1.8s ease-in-out infinite;
+  --animate-float-slow: float 18s ease-in-out infinite;
+  --animate-float-slower: float 26s ease-in-out infinite reverse;
+  --animate-indeterminate: indeterminate 1.3s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  --animate-nav-in: nav-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-sheet-in: sheet-in 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-draw-in: draw-in 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-orb-pulse: orb-pulse 4s ease-in-out infinite;
+  --animate-rise-in: rise-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+      filter: blur(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
+
+  @keyframes indeterminate {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(400%);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+      filter: blur(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+  @keyframes glow-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 20px -6px rgb(113 52 235 / 0.7);
+    }
+    50% {
+      box-shadow: 0 0 36px -2px rgb(113 52 235 / 1), 0 0 60px -10px rgb(22 204 197 / 0.45);
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    33% {
+      transform: translate(40px, -30px) scale(1.08);
+    }
+    66% {
+      transform: translate(-30px, 20px) scale(0.95);
+    }
+  }
+  /* nav slides up from the bottom of the screen with a motion-blur smear, then docks */
+  @keyframes nav-in {
+    0% {
+      transform: translateY(100vh) skewX(-8deg);
+      filter: blur(10px);
+    }
+    70% {
+      filter: blur(2px);
+    }
+    100% {
+      transform: none;
+      filter: none;
+    }
+  }
+  /* the hero sheet follows the nav up, like a sheet being pulled */
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100vh);
+    }
+    to {
+      transform: none;
+    }
+  }
+  /* reveal left to right (chart draw-in) */
+  @keyframes draw-in {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @keyframes orb-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.85;
+    }
+    50% {
+      transform: scale(1.08);
+      opacity: 1;
+    }
+  }
+}
+
+/* Tiny uppercase label above section headings */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-eyebrow);
+}
+
+/* Large, thin display headings */
+.display {
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+/* Shimmering gradient text for loading labels */
+.text-shimmer {
+  background: linear-gradient(90deg, #d9c8ff 0%, #ffffff 40%, #9ff3ee 50%, #ffffff 60%, #d9c8ff 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: var(--animate-shimmer);
+}
+
+/* Shimmer sweep for skeleton blocks */
+.skeleton {
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.04) 0%, rgb(255 255 255 / 0.12) 50%, rgb(255 255 255 / 0.04) 100%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Slide-up entrance driven by components/motion/Reveal.tsx */
+.reveal {
+  opacity: 0;
+  transform: translateY(var(--reveal-y, 72px));
+  filter: blur(6px);
+  transition:
+    opacity 600ms var(--ease-out-quint),
+    transform 600ms var(--ease-out-quint),
+    filter 600ms var(--ease-out-quint);
+}
+.reveal[data-in="true"] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-fg);
+}
+
+/* Range slider: native input on top of a custom track (see components/ui.tsx Slider).
+   The input itself is transparent; only its thumb is drawn here. */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 24px;
+  cursor: pointer;
+  touch-action: none;
+}
+.slider::-moz-range-track {
+  background: transparent;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgb(113 52 235 / 0.4), 0 0 14px rgb(22 204 197 / 0.55);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease;
+}
+.slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgb(113 52 235 / 0.4), 0 0 14px rgb(22 204 197 / 0.55);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease;
+}
+.slider:hover::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+.slider:hover::-moz-range-thumb {
+  transform: scale(1.12);
+}
+.slider:active::-webkit-slider-thumb {
+  transform: scale(1.35);
+  box-shadow: 0 0 0 6px rgb(113 52 235 / 0.35), 0 0 24px rgb(22 204 197 / 0.85);
+}
+.slider:active::-moz-range-thumb {
+  transform: scale(1.35);
+  box-shadow: 0 0 0 6px rgb(113 52 235 / 0.35), 0 0 24px rgb(22 204 197 / 0.85);
+}
+.slider:focus-visible {
+  outline: none;
+}
+.slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgb(113 52 235 / 0.95), 0 0 20px rgb(22 204 197 / 0.8);
+}
+.slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px rgb(113 52 235 / 0.95), 0 0 20px rgb(22 204 197 / 0.8);
+}
+.slider:disabled {
+  cursor: not-allowed;
+}
+
+/* Date picker icon in dark mode */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.75);
+  cursor: pointer;
+}
+
+/* Recharts: no focus outline box around the svg */
+.recharts-wrapper *:focus {
+  outline: none;
+}
