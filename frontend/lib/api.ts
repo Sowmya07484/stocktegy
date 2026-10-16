@@ -1,9 +1,10 @@
-import type {
-  BacktestRequest,
-  BacktestResponse,
-  HealthResponse,
-  MarketDataResponse,
-} from "@/types/backtest";
+import type { BacktestRequest, BacktestResponse, HealthResponse, MarketDataResponse } from "@/types/backtest";
+import {
+  fromBackendBacktest,
+  fromBackendMarketData,
+  type BackendBacktestResponse,
+  type BackendMarketDataResponse,
+} from "./backendAdapter";
 
 // Requests go to this origin (e.g. POST /api/backtest) and next.config.ts forwards them
 // to NEXT_PUBLIC_API_BASE_URL, so the backend URL is configured in one place.
@@ -26,6 +27,11 @@ function extractErrorMessage(body: unknown, fallback: string): string {
   if (!body || typeof body !== "object" || !("detail" in body)) return fallback;
   const { detail } = body as { detail: unknown };
   if (typeof detail === "string") return detail;
+  // e.g. {"message": "Unsupported strategy.", "available_strategies": [...]}
+  if (detail && typeof detail === "object" && "message" in detail) {
+    const d = detail as { message: string; available_strategies?: string[] };
+    return d.available_strategies ? `${d.message} Available: ${d.available_strategies.join(", ")}` : d.message;
+  }
   if (Array.isArray(detail)) {
     return detail
       .map((d: { loc?: unknown[]; msg?: string }) => {
@@ -83,15 +89,21 @@ export const api = {
   health: (signal?: AbortSignal) =>
     request<HealthResponse>("/api/health", { signal, timeoutMs: 5_000 }),
 
-  marketData: (ticker: string, start: string, end: string, signal?: AbortSignal) => {
-    const qs = new URLSearchParams({ ticker, start, end });
-    return request<MarketDataResponse>(`/api/market-data?${qs}`, { signal });
-  },
+  marketData: async (ticker: string, start: string, end: string, signal?: AbortSignal): Promise<MarketDataResponse> =>
+    fromBackendMarketData(
+      await request<BackendMarketDataResponse>("/api/market-data", {
+        method: "POST",
+        body: JSON.stringify({ ticker, start_date: start, end_date: end }),
+        signal,
+      }),
+    ),
 
-  runBacktest: (payload: BacktestRequest, signal?: AbortSignal) =>
-    request<BacktestResponse>("/api/backtest", {
-      method: "POST",
-      body: JSON.stringify(payload),
-      signal,
-    }),
+  runBacktest: async (payload: BacktestRequest, signal?: AbortSignal): Promise<BacktestResponse> =>
+    fromBackendBacktest(
+      await request<BackendBacktestResponse>("/api/backtest", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        signal,
+      }),
+    ),
 };

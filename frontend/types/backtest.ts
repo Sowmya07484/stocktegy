@@ -10,7 +10,7 @@ export interface MaCrossoverParams {
 export interface RsiMeanReversionParams {
   rsi_period: number;
   oversold: number; // enter long when RSI drops below this
-  overbought: number; // exit when RSI rises above this
+  recovery: number; // exit once RSI recovers to this level (backend default 50)
 }
 
 export type BuyAndHoldParams = Record<string, never>;
@@ -40,6 +40,8 @@ export interface BacktestMetrics {
   sharpe_ratio: number | null;
   win_rate_pct: number | null; // null when there were no closed trades
   num_trades: number;
+  /** Return of simply holding the stock over the same window. */
+  buy_hold_return_pct?: number | null;
 }
 
 export interface EquityPoint {
@@ -77,7 +79,8 @@ export interface BacktestResponse {
   metrics: BacktestMetrics;
   equity_curve: EquityPoint[];
   trades: Trade[];
-  news: NewsEvidence[];
+  /** null when the backend doesn't provide news evidence (the News tab is then hidden). */
+  news: NewsEvidence[] | null;
 }
 
 export interface OhlcvBar {

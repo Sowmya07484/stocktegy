@@ -18,11 +18,11 @@ const START = "2025-01-01";
 const END = "2025-12-31";
 const CAPITAL = 100_000;
 // RSI(14) never reaches 30 on this sample series, so the showcase uses the shorter RSI(7)
-const PARAMS: Partial<Record<StrategyId, object>> = { rsi_mean_reversion: { rsi_period: 7, oversold: 30, overbought: 70 } };
+const PARAMS: Partial<Record<StrategyId, object>> = { rsi_mean_reversion: { rsi_period: 7, oversold: 30, recovery: 50 } };
 
 const BLURB: Record<StrategyId, string> = {
   ma_crossover: "Goes long when the 20-day average crosses above the 50-day, and steps aside when it crosses back.",
-  rsi_mean_reversion: "Buys when RSI(7) drops below 30 and sells once it recovers above 70.",
+  rsi_mean_reversion: "Buys when RSI(7) drops below 30 and sells once it recovers to 50.",
   buy_and_hold: "The baseline: buy on the first day and hold to the end. Every other strategy has to beat this.",
 };
 

@@ -166,23 +166,35 @@ function TradesTable({ trades }: { trades: Trade[] }) {
   );
 }
 
-export function EvidenceCard({ news, trades }: { news: NewsEvidence[] | null; trades: Trade[] | null }) {
-  const [tab, setTab] = useState<Tab>("trades");
+export function EvidenceCard({
+  news,
+  trades,
+  newsSupported = true,
+}: {
+  news: NewsEvidence[] | null;
+  trades: Trade[] | null;
+  /** false when the backend returned a result without news; the News tab is hidden. */
+  newsSupported?: boolean;
+}) {
+  const [picked, setPicked] = useState<Tab>("trades");
+  const tab: Tab = newsSupported ? picked : "trades";
   return (
     <Card className="overflow-hidden">
       <CardHeader
         title={tab === "news" ? "Laya news evidence" : "Trade log"}
         subtitle={tab === "news" ? "Headlines scored by Laya sentiment over the backtest window" : "Entry and exit of every position the strategy took"}
         right={
-          <Segmented<Tab>
-            ariaLabel="Evidence view"
-            value={tab}
-            onChange={setTab}
-            options={[
-              { value: "trades", label: `Trades${trades ? ` · ${trades.length}` : ""}` },
-              { value: "news", label: `News${news ? ` · ${news.length}` : ""}` },
-            ]}
-          />
+          newsSupported ? (
+            <Segmented<Tab>
+              ariaLabel="Evidence view"
+              value={tab}
+              onChange={setPicked}
+              options={[
+                { value: "trades", label: `Trades${trades ? ` · ${trades.length}` : ""}` },
+                { value: "news", label: `News${news ? ` · ${news.length}` : ""}` },
+              ]}
+            />
+          ) : undefined
         }
       />
       <div key={`${tab}-${news?.length ?? "x"}-${trades?.length ?? "x"}`} className="animate-fade-in">

@@ -129,7 +129,7 @@ function buildCards(m: BacktestMetrics | null): CardSpec[] {
       num: m?.final_value,
       fmt: formatCurrency,
       valueTone: toneOf(pnl),
-      chip: m ? `Sharpe ${formatNumber(m.sharpe_ratio)}` : undefined,
+      chip: m?.sharpe_ratio != null ? `Sharpe ${formatNumber(m.sharpe_ratio)}` : undefined,
       sub: m ? "Portfolio value at end date" : undefined,
     },
     {
@@ -140,7 +140,7 @@ function buildCards(m: BacktestMetrics | null): CardSpec[] {
       fmt: signedCurrency,
       valueTone: toneOf(pnl),
     },
-    { label: "Total Return", icon: icons.trend, value: m ? formatPct(m.total_return_pct) : "—", num: m?.total_return_pct, fmt: (n: number) => formatPct(n), valueTone: toneOf(m?.total_return_pct) },
+    { label: "Total Return", icon: icons.trend, value: m ? formatPct(m.total_return_pct) : "—", num: m?.total_return_pct, fmt: (n: number) => formatPct(n), valueTone: toneOf(m?.total_return_pct), sub: m?.buy_hold_return_pct != null ? `Buy & hold ${formatPct(m.buy_hold_return_pct)}` : undefined },
     {
       label: "Max Drawdown",
       icon: icons.drop,

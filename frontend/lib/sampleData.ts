@@ -87,7 +87,7 @@ function positions(req: BacktestRequest, closes: number[]): boolean[] {
   return closes.map((_, i) => {
     const v = r[i];
     if (v != null && !inPos && v < p.oversold) inPos = true;
-    else if (v != null && inPos && v > p.overbought) inPos = false;
+    else if (v != null && inPos && v >= p.recovery) inPos = false;
     return inPos;
   });
 }
@@ -169,6 +169,7 @@ export function runSampleBacktest(req: BacktestRequest): BacktestResponse {
       sharpe_ratio: sd > 0 ? Math.round((mean / sd) * Math.sqrt(252) * 100) / 100 : null,
       win_rate_pct: trades.length ? Math.round((wins / trades.length) * 1000) / 10 : null,
       num_trades: trades.length,
+      buy_hold_return_pct: closes.length ? Math.round((closes.at(-1)! / closes[0] - 1) * 10000) / 100 : null,
     },
     equity_curve: equity,
     trades,

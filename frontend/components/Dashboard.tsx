@@ -30,7 +30,7 @@ function runTitle(req: BacktestRequest) {
   }
   if (req.strategy === "rsi_mean_reversion") {
     const p = req.params as RsiMeanReversionParams;
-    return `${req.ticker} · RSI ${p.rsi_period} · ${p.oversold}/${p.overbought}`;
+    return `${req.ticker} · RSI ${p.rsi_period} · ${p.oversold}→${p.recovery}`;
   }
   return `${req.ticker} · Buy & hold`;
 }
@@ -123,7 +123,7 @@ export function Dashboard({ initialTicker }: { initialTicker?: string }) {
           priceError={market.error}
         />
 
-        <EvidenceCard news={result?.news ?? null} trades={result?.trades ?? null} />
+        <EvidenceCard news={result?.news ?? null} trades={result?.trades ?? null} newsSupported={result ? result.news !== null : true} />
 
         {result && <p className="eyebrow pt-2 text-center">Historical simulation. Not financial advice.</p>}
       </main>

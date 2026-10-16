@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { PARAMS_LOCKED } from "@/lib/config";
 import { STRATEGIES, STRATEGY_LIST, type StrategyDef } from "@/lib/strategies";
 import type { BacktestRequest, StrategyId, StrategyParamsMap } from "@/types/backtest";
 import { Slider, Spinner } from "./ui";
@@ -156,7 +157,7 @@ export function ControlPanel({ onRun, isLoading, initialTicker }: Props) {
                   step={p.step}
                   value={value}
                   onChange={(v) => setParams({ ...params, [p.key]: v } as typeof params)}
-                  disabled={isLoading}
+                  disabled={isLoading || PARAMS_LOCKED}
                 />
               </div>
             );
@@ -201,6 +202,11 @@ export function ControlPanel({ onRun, isLoading, initialTicker }: Props) {
 
       <p className={`mt-3 min-h-4 text-xs ${validationError ? "text-warn" : "text-muted"}`}>
         {validationError ?? def.description}
+        {!validationError && PARAMS_LOCKED && def.params.length > 0 && (
+          <span className="ml-2 inline-flex items-center rounded-full border border-line bg-white/5 px-2 py-0.5 text-[11px] text-muted">
+            Parameters fixed by the backend for now (defaults shown)
+          </span>
+        )}
         {!validationError && !def.backendReady && (
           <span className="ml-2 inline-flex items-center rounded-full border border-warn/30 bg-warn/10 px-2 py-0.5 text-[11px] text-warn">
             Backend support pending
