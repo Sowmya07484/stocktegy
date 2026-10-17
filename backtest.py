@@ -83,8 +83,8 @@ STRATEGIES = {
 }
 
 
-def run_backtest(data, strategy=MovingAverageCrossover, cash=100000):
-    """Run a strategy against historical OHLCV data."""
+def run_backtest(data, strategy=MovingAverageCrossover, cash=100000, params=None):
+    """Run a strategy against historical OHLCV data using selected parameters."""
     required = {"Open", "High", "Low", "Close", "Volume"}
 
     if not isinstance(data, pd.DataFrame):
@@ -104,6 +104,45 @@ def run_backtest(data, strategy=MovingAverageCrossover, cash=100000):
     if cash <= 0:
         raise ValueError("Initial capital must be greater than zero")
 
+    params = params or {}
+    allowed = {
+        MovingAverageCrossover: {"short_window", "long_window"},
+        RSIMeanReversion: {"rsi_period", "oversold", "recovery"},
+        BuyAndHold: set(),
+    }
+
+    if strategy not in allowed:
+        raise ValueError("Unsupported strategy class")
+
+    unexpected = set(params) - allowed[strategy]
+    if unexpected:
+        raise ValueError(f"Unexpected parameters for strategy: {sorted(unexpected)}")
+
+    if strategy is MovingAverageCrossover:
+        short_window = int(params.get("short_window", 20))
+        long_window = int(params.get("long_window", 50))
+        if short_window < 1 or long_window <= short_window:
+            raise ValueError("Long window must be greater than the positive short window")
+        strategy_kwargs = {
+            "short_window": short_window,
+            "long_window": long_window,
+        }
+    elif strategy is RSIMeanReversion:
+        rsi_period = int(params.get("rsi_period", 14))
+        oversold = float(params.get("oversold", 30))
+        recovery = float(params.get("recovery", 50))
+        if rsi_period < 2:
+            raise ValueError("RSI period must be at least 2")
+        if not (0 < oversold < recovery < 100):
+            raise ValueError("RSI levels must satisfy 0 < oversold < recovery < 100")
+        strategy_kwargs = {
+            "rsi_period": rsi_period,
+            "oversold": oversold,
+            "recovery": recovery,
+        }
+    else:
+        strategy_kwargs = {}
+
     engine = Backtest(
         data,
         strategy,
@@ -112,5 +151,5 @@ def run_backtest(data, strategy=MovingAverageCrossover, cash=100000):
         exclusive_orders=True,
     )
 
-    stats = engine.run()
+    stats = engine.run(**strategy_kwargs)
     return stats, engine
