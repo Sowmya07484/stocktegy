@@ -67,18 +67,6 @@ export function Dashboard({ initialTicker }: { initialTicker?: string }) {
           <ControlPanel onRun={handleRun} isLoading={backtest.isLoading} initialTicker={initialTicker} />
         </div>
 
-        {USE_SAMPLE_DATA && (
-          <div role="note" className="flex items-start gap-3 rounded-[20px] border border-warn/25 bg-warn/[0.06] px-5 py-3.5 text-sm text-amber-100/90 backdrop-blur-xl">
-            <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0 text-warn" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-              <path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <p>
-              <span className="font-semibold text-warn">Sample data mode.</span> Results below are generated in the browser from
-              synthetic prices for layout only. They are not real backtest results, and the FastAPI backend is not called.
-            </p>
-          </div>
-        )}
-
         {backtest.error && (
           <div role="alert" className="flex animate-fade-in items-start gap-3 rounded-[20px] border border-loss/30 bg-loss/10 px-5 py-4 text-sm text-loss backdrop-blur-xl">
             <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>

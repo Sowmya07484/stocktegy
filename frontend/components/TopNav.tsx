@@ -20,10 +20,6 @@ export function TopNav() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="hidden items-center gap-1.5 rounded-full bg-black/25 px-3 py-1 text-xs text-white/85 ring-1 ring-white/15 sm:inline-flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-white" />
-            Laya sentiment
-          </span>
           <span className="hidden rounded-full bg-black/25 px-3 py-1 text-xs text-white/85 ring-1 ring-white/15 md:inline-flex">NSE · INR</span>
           <HealthBadge />
         </div>

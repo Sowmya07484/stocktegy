@@ -23,6 +23,7 @@ export function useApiRequest<Args extends unknown[], T>(
 
     setStatus("loading");
     setError(null);
+    setData(null); // never show the previous run's result under a new run's error
     try {
       const result = await fnRef.current(...args, controller.signal);
       if (controller.signal.aborted) return;
