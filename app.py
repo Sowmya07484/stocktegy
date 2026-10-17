@@ -3,7 +3,6 @@ from datetime import date, timedelta
 from typing import Any
 import math
 
-import httpx
 import pandas as pd
 
 from fastapi import FastAPI, HTTPException
@@ -12,13 +11,12 @@ from pydantic import BaseModel, Field
 
 from backtest import STRATEGIES, run_backtest
 from market_data import fetch_stock_data
-from news_feed import fetch_news
 
 
 app = FastAPI(
     title="QuantBack API",
-    description="Historical stock strategy backtesting and news sentiment API",
-    version="1.1.0",
+    description="Historical stock strategy backtesting API",
+    version="1.0.0",
 )
 
 app.add_middleware(
@@ -42,10 +40,6 @@ class BacktestRequest(BaseModel):
     strategy: str
     initial_capital: float = Field(default=100000, gt=0)
     params: dict[str, Any] = Field(default_factory=dict)
-
-
-class SentimentRequest(BaseModel):
-    headline: str = Field(..., min_length=1, max_length=1000)
 
 
 def warmup_calendar_days(strategy: str, params: dict) -> int:
@@ -338,85 +332,3 @@ def backtest_endpoint(request: BacktestRequest):
             status_code=500,
             detail=f"Backtest failed: {str(exc)}",
         ) from exc
-
-
-@app.post("/api/sentiment/analyze")
-def sentiment_endpoint(request: SentimentRequest):
-    headline = request.headline.strip()
-
-    if not headline:
-        raise HTTPException(
-            status_code=400,
-            detail="Headline cannot be empty.",
-        )
-
-    try:
-        response = httpx.post(
-            "http://127.0.0.1:8001/analyze",
-            json={"headline": headline},
-            timeout=180.0,
-        )
-        response.raise_for_status()
-        return response.json()
-
-    except httpx.TimeoutException as exc:
-        raise HTTPException(
-            status_code=504,
-            detail="Laya sentiment service timed out.",
-        ) from exc
-
-    except httpx.HTTPStatusError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Laya service returned an error: {exc.response.text}",
-        ) from exc
-
-    except httpx.RequestError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Cannot connect to Laya. Make sure the Laya service "
-                "is running on port 8001."
-            ),
-        ) from exc
-
-
-@app.get("/api/news")
-def news_endpoint(
-    query: str = "stock market",
-    limit: int = 10,
-    analyze_sentiment: bool = True,
-):
-    if not 1 <= limit <= 30:
-        raise HTTPException(
-            status_code=400,
-            detail="limit must be between 1 and 30.",
-        )
-
-    result = fetch_news(query=query, limit=limit)
-
-    if analyze_sentiment:
-        for article in result["articles"]:
-            try:
-                response = httpx.post(
-                    "http://127.0.0.1:8001/analyze",
-                    json={"headline": article["title"]},
-                    timeout=180.0,
-                )
-                response.raise_for_status()
-                sentiment_result = response.json()
-
-                article["sentiment"] = sentiment_result.get("sentiment")
-                article["probabilities"] = sentiment_result.get(
-                    "probabilities"
-                )
-                article["sentiment_warning"] = sentiment_result.get(
-                    "warning"
-                )
-            except httpx.HTTPError:
-                article["sentiment"] = "unavailable"
-                article["sentiment_warning"] = (
-                    "Sentiment service could not analyze this headline."
-                )
-
-    return result

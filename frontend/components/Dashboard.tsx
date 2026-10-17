@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ChartsCard } from "@/components/ChartsCard";
 import { ControlPanel } from "@/components/ControlPanel";
 import { EvidenceCard } from "@/components/EvidenceCard";
@@ -10,20 +9,11 @@ import { TopNav } from "@/components/TopNav";
 import { Scramble } from "@/components/motion/Scramble";
 import { useBacktest, useMarketData } from "@/hooks/useBacktest";
 import { USE_SAMPLE_DATA } from "@/lib/config";
-import { api, type NewsArticle } from "@/lib/api";
-import type {
-  BacktestRequest,
-  MaCrossoverParams,
-  RsiMeanReversionParams,
-  NewsEvidence,
-} from "@/types/backtest";
+import type { BacktestRequest, MaCrossoverParams, RsiMeanReversionParams } from "@/types/backtest";
 
 function AmbientGlow() {
   return (
-    <div
-      aria-hidden
-      className="pointer-events-none fixed inset-0 -z-20 overflow-hidden"
-    >
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-20 overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-[640px] bg-[radial-gradient(ellipse_70%_55%_at_50%_-10%,rgba(113,52,235,0.30),transparent_70%)]" />
       <div className="absolute inset-x-0 top-0 h-[640px] bg-[radial-gradient(ellipse_40%_35%_at_90%_0%,rgba(22,204,197,0.10),transparent_70%)]" />
       <div className="absolute -top-48 -left-40 h-[520px] w-[520px] animate-float-slow rounded-full bg-violet/20 blur-[120px]" />
@@ -32,123 +22,45 @@ function AmbientGlow() {
   );
 }
 
+/** "RELIANCE.NS · SMA 20/50": the run's identity, used as the results heading. */
 function runTitle(req: BacktestRequest) {
   if (req.strategy === "ma_crossover") {
     const p = req.params as MaCrossoverParams;
     return `${req.ticker} · SMA ${p.short_window}/${p.long_window}`;
   }
-
   if (req.strategy === "rsi_mean_reversion") {
     const p = req.params as RsiMeanReversionParams;
     return `${req.ticker} · RSI ${p.rsi_period} · ${p.oversold}→${p.recovery}`;
   }
-
   return `${req.ticker} · Buy & hold`;
 }
 
 /**
- * Fetch candles from before start_date so SMA overlays are valid on day one.
+ * Fetch candles from before start_date so the SMA overlays are already valid on day one,
+ * matching the backend's warm-up (app.py warmup_calendar_days). The chart trims back to start_date.
  */
 function warmupStart(req: BacktestRequest): string {
   if (req.strategy !== "ma_crossover") return req.start_date;
-
-  const days =
-    Math.floor((req.params as MaCrossoverParams).long_window * 1.5) + 10;
-
-  const date = new Date(`${req.start_date}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - days);
-
-  return date.toISOString().slice(0, 10);
-}
-
-/** Convert the live news API response to the fields EvidenceCard expects. */
-function toNewsEvidence(article: NewsArticle): NewsEvidence {
-  const probabilities = article.probabilities;
-  const positive = probabilities?.positive ?? 0;
-  const negative = probabilities?.negative ?? 0;
-
-  return {
-    title: article.title,
-    url: article.url,
-    source: article.source,
-    published_at: article.published_at ?? "",
-    summary: article.description,
-    sentiment_label:
-      article.sentiment === "positive" ||
-      article.sentiment === "negative" ||
-      article.sentiment === "neutral"
-        ? article.sentiment
-        : "neutral",
-    sentiment_score: positive - negative,
-  };
+  const days = Math.floor((req.params as MaCrossoverParams).long_window * 1.5) + 10;
+  const d = new Date(`${req.start_date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
 }
 
 export function Dashboard({ initialTicker }: { initialTicker?: string }) {
   const backtest = useBacktest();
   const market = useMarketData();
-
   const [lastRequest, setLastRequest] = useState<BacktestRequest | null>(null);
   const [runId, setRunId] = useState(0);
-  const [liveNews, setLiveNews] = useState<NewsEvidence[] | null>(null);
-  const [newsError, setNewsError] = useState<string | null>(null);
-  const [newsLoading, setNewsLoading] = useState(false);
 
   const handleRun = (payload: BacktestRequest) => {
     setLastRequest(payload);
-    setRunId((previous) => previous + 1);
-    setLiveNews(null);
-    setNewsError(null);
-
+    setRunId((n) => n + 1);
     backtest.run(payload);
     market.run(payload.ticker, warmupStart(payload), payload.end_date);
   };
 
   const result = backtest.data;
-
-  useEffect(() => {
-    if (!lastRequest || USE_SAMPLE_DATA) return;
-
-    const controller = new AbortController();
-
-    async function loadNews() {
-      setNewsLoading(true);
-      setNewsError(null);
-
-      try {
-        const response = await api.news(
-          lastRequest!.ticker,
-          10,
-          true,
-          controller.signal,
-        );
-
-        if (!controller.signal.aborted) {
-          setLiveNews(response.articles.map(toNewsEvidence));
-        }
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          setNewsError(
-            error instanceof Error
-              ? error.message
-              : "Could not load news.",
-          );
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setNewsLoading(false);
-        }
-      }
-    }
-
-    void loadNews();
-
-    return () => controller.abort();
-  }, [lastRequest, runId]);
-
-  // Sample mode uses sample news; real mode uses the live news endpoint.
-  const displayedNews = USE_SAMPLE_DATA
-    ? result?.news ?? null
-    : liveNews;
 
   return (
     <div className="relative isolate min-h-screen">
@@ -164,30 +76,15 @@ export function Dashboard({ initialTicker }: { initialTicker?: string }) {
         </header>
 
         <div className="animate-fade-in [animation-delay:120ms]">
-          <ControlPanel
-            onRun={handleRun}
-            isLoading={backtest.isLoading}
-            initialTicker={initialTicker}
-          />
+          <ControlPanel onRun={handleRun} isLoading={backtest.isLoading} initialTicker={initialTicker} />
         </div>
 
         {backtest.error && (
-          <div
-            role="alert"
-            className="flex animate-fade-in items-start gap-3 rounded-[20px] border border-loss/30 bg-loss/10 px-5 py-4 text-sm text-loss backdrop-blur-xl"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="mt-0.5 h-4 w-4 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden
-            >
+          <div role="alert" className="flex animate-fade-in items-start gap-3 rounded-[20px] border border-loss/30 bg-loss/10 px-5 py-4 text-sm text-loss backdrop-blur-xl">
+            <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
               <circle cx="12" cy="12" r="9" />
               <path d="M12 8v5M12 16h.01" strokeLinecap="round" />
             </svg>
-
             <div>
               <p className="font-semibold">Backtest failed</p>
               <p className="mt-0.5 text-loss/80">{backtest.error}</p>
@@ -199,22 +96,15 @@ export function Dashboard({ initialTicker }: { initialTicker?: string }) {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="eyebrow">Results</p>
+              {/* keyed per run: scrambles once when a run finishes, not on every parameter tweak */}
               <h2 className="display mt-2 text-3xl text-white sm:text-4xl">
-                <Scramble
-                  key={runId}
-                  text={runTitle(lastRequest)}
-                  duration={520}
-                />
+                <Scramble key={runId} text={runTitle(lastRequest)} duration={520} />
               </h2>
             </div>
-
             <div className="flex flex-wrap items-center gap-2 text-xs">
               {USE_SAMPLE_DATA && (
-                <span className="rounded-full border border-warn/30 bg-warn/10 px-2.5 py-0.5 font-medium text-warn">
-                  Sample data
-                </span>
+                <span className="rounded-full border border-warn/30 bg-warn/10 px-2.5 py-0.5 font-medium text-warn">Sample data</span>
               )}
-
               <span className="text-muted tabular-nums">
                 {lastRequest.start_date} → {lastRequest.end_date}
               </span>
@@ -222,10 +112,7 @@ export function Dashboard({ initialTicker }: { initialTicker?: string }) {
           </div>
         )}
 
-        <KpiGrid
-          metrics={result?.metrics ?? null}
-          loading={backtest.isLoading}
-        />
+        <KpiGrid metrics={result?.metrics ?? null} loading={backtest.isLoading} />
 
         <ChartsCard
           result={result}
@@ -236,29 +123,9 @@ export function Dashboard({ initialTicker }: { initialTicker?: string }) {
           priceError={market.error}
         />
 
-        {newsError && (
-          <p role="status" className="text-sm text-warn">
-            News could not be loaded: {newsError}
-          </p>
-        )}
+        <EvidenceCard news={result?.news ?? null} trades={result?.trades ?? null} newsSupported={result ? result.news !== null : true} />
 
-        {newsLoading && (
-          <p role="status" className="text-sm text-muted">
-            Fetching news and analysing sentiment…
-          </p>
-        )}
-
-        <EvidenceCard
-          news={displayedNews}
-          trades={result?.trades ?? null}
-          newsSupported={true}
-        />
-
-        {result && (
-          <p className="eyebrow pt-2 text-center">
-            Historical simulation. Not financial advice.
-          </p>
-        )}
+        {result && <p className="eyebrow pt-2 text-center">Historical simulation. Not financial advice.</p>}
       </main>
     </div>
   );

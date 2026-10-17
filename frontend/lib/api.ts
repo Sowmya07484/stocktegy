@@ -135,29 +135,6 @@ async function request<T>(
   return body as T;
 }
 
-// News API response types
-export interface NewsArticle {
-  title: string;
-  url: string;
-  description: string;
-  published_at: string | null;
-  source: string;
-  sentiment: "positive" | "neutral" | "negative" | "unavailable";
-  probabilities: {
-    positive: number;
-    neutral: number;
-    negative: number;
-  } | null;
-  sentiment_warning?: string;
-}
-
-export interface NewsResponse {
-  query: string;
-  fetched_at: string;
-  count: number;
-  articles: NewsArticle[];
-}
-
 export const api = {
   health: (signal?: AbortSignal) =>
     request<HealthResponse>("/api/health", {
@@ -184,14 +161,9 @@ export const api = {
         }),
       );
     } catch (err) {
-      if (
-        err instanceof ApiError &&
-        (err.status === 404 || err.status === 405)
-      ) {
-        throw new ApiError(
-          "Price data isn't available from the backend yet (no /api/market-data endpoint).",
-          err.status,
-        );
+      // the backend may not expose this endpoint; say so instead of a bare "Not Found"
+      if (err instanceof ApiError && (err.status === 404 || err.status === 405)) {
+        throw new ApiError("Price data isn't available from the backend yet (no /api/market-data endpoint).", err.status);
       }
       throw err;
     }
@@ -208,24 +180,4 @@ export const api = {
         signal,
       }),
     ),
-
-  // Fetch news and sentiment for a stock ticker or search query.
-  news: (
-    query: string,
-    limit = 10,
-    analyzeSentiment = true,
-    signal?: AbortSignal,
-  ): Promise<NewsResponse> => {
-    const params = new URLSearchParams({
-      query: query.trim(),
-      limit: String(limit),
-      analyze_sentiment: String(analyzeSentiment),
-    });
-
-    return request<NewsResponse>(`/api/news?${params.toString()}`, {
-      method: "GET",
-      signal,
-      timeoutMs: 45_000,
-    });
-  },
 };
