@@ -1,6 +1,8 @@
-// Shared contract with the FastAPI backend. Keep field names in sync with the Pydantic models.
 
-export type StrategyId = "ma_crossover" | "rsi_mean_reversion" | "buy_and_hold";
+export type StrategyId =
+  | "ma_crossover"
+  | "rsi_mean_reversion"
+  | "buy_and_hold";
 
 export interface MaCrossoverParams {
   short_window: number;
@@ -9,8 +11,8 @@ export interface MaCrossoverParams {
 
 export interface RsiMeanReversionParams {
   rsi_period: number;
-  oversold: number; // enter long when RSI drops below this
-  recovery: number; // exit once RSI recovers to this level (backend default 50)
+  oversold: number;
+  recovery: number;
 }
 
 export type BuyAndHoldParams = Record<string, never>;
@@ -23,36 +25,33 @@ export interface StrategyParamsMap {
 
 export interface BacktestRequest<S extends StrategyId = StrategyId> {
   ticker: string;
-  start_date: string; // YYYY-MM-DD
-  end_date: string; // YYYY-MM-DD
+  start_date: string;
+  end_date: string;
   strategy: S;
   initial_capital: number;
-  /** Not in the minimal backend contract yet; FastAPI should accept it as optional. */
   params: StrategyParamsMap[S];
 }
 
-/** All percentage fields are in percent units (12.5 means 12.5%), not fractions. */
 export interface BacktestMetrics {
   initial_capital: number;
   final_value: number;
   total_return_pct: number;
-  max_drawdown_pct: number; // negative number, e.g. -18.4
+  max_drawdown_pct: number;
   sharpe_ratio: number | null;
-  win_rate_pct: number | null; // null when there were no closed trades
+  win_rate_pct: number | null;
   num_trades: number;
-  /** Return of simply holding the stock over the same window. */
   buy_hold_return_pct?: number | null;
 }
 
 export interface EquityPoint {
-  date: string; // ISO date
+  date: string;
   equity: number;
   drawdown_pct?: number;
 }
 
 export interface Trade {
   entry_date: string;
-  exit_date: string | null; // null if still open at end of backtest
+  exit_date: string | null;
   side: "long" | "short";
   size: number;
   entry_price: number;
@@ -67,8 +66,8 @@ export interface NewsEvidence {
   title: string;
   source: string;
   url: string | null;
-  published_at: string; // ISO datetime
-  sentiment_score: number; // -1 .. 1
+  published_at: string;
+  sentiment_score: number;
   sentiment_label: SentimentLabel;
   summary?: string;
 }
@@ -79,8 +78,34 @@ export interface BacktestResponse {
   metrics: BacktestMetrics;
   equity_curve: EquityPoint[];
   trades: Trade[];
-  /** null when the backend doesn't provide news evidence (the News tab is then hidden). */
-  news: NewsEvidence[] | null;
+  news: NewsEvidence[];
+}
+
+export interface ApiTrade {
+  entry_date: string;
+  exit_date: string | null;
+  entry_price: number;
+  exit_price: number | null;
+  size: number;
+  profit_loss: number;
+  return_percent: number;
+}
+
+export interface ApiBacktestResponse {
+  ticker: string;
+  strategy: StrategyId;
+  start_date: string;
+  end_date: string;
+  initial_capital: number;
+  final_equity: number;
+  net_profit: number;
+  return_percent: number;
+  buy_hold_return_percent: number;
+  max_drawdown_percent: number;
+  win_rate_percent: number;
+  number_of_trades: number;
+  equity_curve: EquityPoint[];
+  trades: ApiTrade[];
 }
 
 export interface OhlcvBar {

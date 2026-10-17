@@ -78,8 +78,7 @@ export function fromBackendBacktest(raw: BackendBacktestResponse | BacktestRespo
     },
     equity_curve,
     trades,
-    news: Array.isArray(raw.news) ? raw.news : null,
-  };
+    news: Array.isArray(raw.news) ? raw.news : [],  };
 }
 
 export function fromBackendMarketData(raw: BackendMarketDataResponse): MarketDataResponse {
