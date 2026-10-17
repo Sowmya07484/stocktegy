@@ -6,7 +6,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Laya Backtester",
+  title: "QuantBack",
   description: "AI-powered trading strategy backtester with Laya news sentiment",
 };
 

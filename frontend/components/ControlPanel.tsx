@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PARAMS_LOCKED } from "@/lib/config";
 import { STRATEGIES, STRATEGY_LIST, type StrategyDef } from "@/lib/strategies";
 import type { BacktestRequest, StrategyId, StrategyParamsMap } from "@/types/backtest";
-import { Slider, Spinner } from "./ui";
+import { Slider } from "./ui";
 
 interface Props {
   onRun: (payload: BacktestRequest) => void;
@@ -24,7 +24,7 @@ function ElapsedTimer() {
     const id = setInterval(() => setNow(performance.now()), 100);
     return () => clearInterval(id);
   }, []);
-  return <span className="font-mono text-xs tabular-nums text-white/70">{((now - start) / 1000).toFixed(1)}s</span>;
+  return <span className="text-xs tabular-nums text-violet-deep/60">{((now - start) / 1000).toFixed(1)}s</span>;
 }
 
 export function ControlPanel({ onRun, isLoading, initialTicker }: Props) {
@@ -169,23 +169,19 @@ export function ControlPanel({ onRun, isLoading, initialTicker }: Props) {
             type="submit"
             disabled={!!validationError || isLoading}
             aria-busy={isLoading}
-            className={`group relative flex h-11 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-full bg-gradient-to-r from-violet via-[#9b6bff] to-violet bg-[length:200%_100%] bg-left px-5 text-sm font-semibold text-white shadow-[0_0_24px_-6px_rgb(113_52_235/0.9)] transition-all duration-300 ease-in-out enabled:hover:bg-right enabled:hover:animate-glow-pulse enabled:active:scale-95 disabled:cursor-not-allowed ${
-              isLoading ? "animate-glow-pulse" : "disabled:opacity-40 disabled:shadow-none"
+            // same flat style as the landing page's "Run a backtest" button
+            className={`group relative flex h-11 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-md bg-white px-5 text-sm font-medium text-violet-deep transition-all duration-300 ease-out enabled:hover:bg-white/90 enabled:active:scale-[0.97] disabled:cursor-not-allowed ${
+              isLoading ? "" : "disabled:opacity-40"
             }`}
           >
-            {/* light sweep on hover */}
-            <span
-              aria-hidden
-              className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-white/25 opacity-0 blur-md transition-all duration-700 ease-out group-enabled:group-hover:left-[120%] group-enabled:group-hover:opacity-100"
-            />
             {isLoading ? (
               <>
-                <Spinner />
-                <span className="text-shimmer">Simulating Strategy…</span>
+                <span aria-hidden className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-violet-deep/25 border-t-violet-deep" />
+                <span>Simulating Strategy…</span>
                 <ElapsedTimer />
-                {/* indeterminate progress sweep along the bottom edge */}
-                <span aria-hidden className="absolute inset-x-0 bottom-0 h-0.5 overflow-hidden bg-white/10">
-                  <span className="block h-full w-1/4 animate-indeterminate bg-gradient-to-r from-transparent via-white to-transparent" />
+                {/* indeterminate progress line along the bottom edge */}
+                <span aria-hidden className="absolute inset-x-0 bottom-0 h-0.5 overflow-hidden bg-violet-deep/10">
+                  <span className="block h-full w-1/4 animate-indeterminate bg-violet" />
                 </span>
               </>
             ) : (

@@ -1,7 +1,4 @@
-import type { Metadata } from "next";
 import { Dashboard } from "@/components/Dashboard";
-
-export const metadata: Metadata = { title: "Dashboard · QuantBack" };
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ ticker?: string | string[] }> }) {
   const { ticker } = await searchParams;
