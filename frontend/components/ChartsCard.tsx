@@ -23,6 +23,9 @@ export function ChartsCard({ result, request, bars, loading, priceLoading, price
   const ma = request?.strategy === "ma_crossover" ? (request.params as MaCrossoverParams) : null;
   const shortWindow = ma?.short_window ?? null;
   const longWindow = ma?.long_window ?? null;
+  // bars may include warm-up history before start_date (for the SMAs); everything plotted starts at start_date
+  const from = request?.start_date ?? "";
+  const visibleBars = bars?.filter((b) => b.date.slice(0, 10) >= from) ?? null;
 
   const body = () => {
     if (loading) {
@@ -43,7 +46,7 @@ export function ChartsCard({ result, request, bars, loading, priceLoading, price
           data={result.equity_curve}
           initialCapital={result.metrics.initial_capital}
           // the benchmark would duplicate the strategy line for buy & hold itself
-          bars={result.strategy === "buy_and_hold" ? null : bars}
+          bars={result.strategy === "buy_and_hold" ? null : visibleBars}
         />
       );
     }
@@ -55,8 +58,8 @@ export function ChartsCard({ result, request, bars, loading, priceLoading, price
       );
     }
     if (priceError) return <EmptyState><span className="text-loss">Market data failed: {priceError}</span></EmptyState>;
-    if (!bars?.length) return <EmptyState>Run a backtest to load OHLCV candles.</EmptyState>;
-    return <PriceChart bars={bars} trades={result?.trades ?? []} shortWindow={shortWindow} longWindow={longWindow} />;
+    if (!bars?.length || !visibleBars?.length) return <EmptyState>Run a backtest to load OHLCV candles.</EmptyState>;
+    return <PriceChart bars={bars} from={from} trades={result?.trades ?? []} shortWindow={shortWindow} longWindow={longWindow} />;
   };
 
   return (

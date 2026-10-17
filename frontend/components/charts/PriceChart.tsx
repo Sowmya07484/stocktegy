@@ -7,7 +7,9 @@ import type { OhlcvBar, Trade } from "@/types/backtest";
 import { CHART, CandleSwatch, LineSwatch, MarkerSwatch, TooltipRow, TooltipShell, axisProps, monthTicks } from "./theme";
 
 interface Props {
+  /** may start before `from`: those bars only warm up the SMAs and aren't plotted */
   bars: OhlcvBar[];
+  from: string;
   trades: Trade[];
   shortWindow: number | null;
   longWindow: number | null;
@@ -121,12 +123,17 @@ export function PriceLegend({ shortWindow, longWindow }: { shortWindow: number |
   );
 }
 
-export function PriceChart({ bars, trades, shortWindow, longWindow }: Props) {
-  const { rows, domain } = useMemo(() => {
-    const closes = bars.map((b) => b.close);
-    const none = closes.map(() => null);
-    const s = shortWindow != null ? sma(closes, shortWindow) : none;
-    const l = longWindow != null ? sma(closes, longWindow) : none;
+export function PriceChart({ bars: allBars, from, trades, shortWindow, longWindow }: Props) {
+  const { rows, domain, bars } = useMemo(() => {
+    // SMAs over the full history, then drop the warm-up bars
+    const all = allBars.map((b) => b.close);
+    const none = all.map(() => null);
+    const sAll = shortWindow != null ? sma(all, shortWindow) : none;
+    const lAll = longWindow != null ? sma(all, longWindow) : none;
+    const first = Math.max(0, allBars.findIndex((b) => b.date.slice(0, 10) >= from));
+    const bars = allBars.slice(first);
+    const s = sAll.slice(first);
+    const l = lAll.slice(first);
     const entries = new Set(trades.map((t) => dayKey(t.entry_date)));
     const exits = new Set(trades.filter((t) => t.exit_date).map((t) => dayKey(t.exit_date!)));
     let lo = Infinity;
@@ -145,8 +152,8 @@ export function PriceChart({ bars, trades, shortWindow, longWindow }: Props) {
       };
     });
     const pad = (hi - lo) * 0.08 || 1;
-    return { rows, domain: [Math.floor(lo - pad), Math.ceil(hi + pad)] as [number, number] };
-  }, [bars, trades, shortWindow, longWindow]);
+    return { rows, bars, domain: [Math.floor(lo - pad), Math.ceil(hi + pad)] as [number, number] };
+  }, [allBars, from, trades, shortWindow, longWindow]);
   const ticks = useMemo(() => monthTicks(bars.map((b) => b.date)), [bars]);
 
   return (

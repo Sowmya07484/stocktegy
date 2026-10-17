@@ -35,6 +35,18 @@ function runTitle(req: BacktestRequest) {
   return `${req.ticker} · Buy & hold`;
 }
 
+/**
+ * Fetch candles from before start_date so the SMA overlays are already valid on day one,
+ * matching the backend's warm-up (app.py warmup_calendar_days). The chart trims back to start_date.
+ */
+function warmupStart(req: BacktestRequest): string {
+  if (req.strategy !== "ma_crossover") return req.start_date;
+  const days = Math.floor((req.params as MaCrossoverParams).long_window * 1.5) + 10;
+  const d = new Date(`${req.start_date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
 export function Dashboard({ initialTicker }: { initialTicker?: string }) {
   const backtest = useBacktest();
   const market = useMarketData();
@@ -45,7 +57,7 @@ export function Dashboard({ initialTicker }: { initialTicker?: string }) {
     setLastRequest(payload);
     setRunId((n) => n + 1);
     backtest.run(payload);
-    market.run(payload.ticker, payload.start_date, payload.end_date);
+    market.run(payload.ticker, warmupStart(payload), payload.end_date);
   };
 
   const result = backtest.data;

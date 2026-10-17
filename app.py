@@ -102,6 +102,53 @@ def get_strategies():
     }
 
 
+class MarketDataRequest(BaseModel):
+    ticker: str = Field(..., min_length=1)
+    start_date: date
+    end_date: date
+
+
+@app.post("/api/market-data")
+def market_data(request: MarketDataRequest):
+    """Daily OHLCV for the price chart and the buy & hold line on the equity chart."""
+    ticker = request.ticker.strip().upper()
+
+    if request.start_date >= request.end_date:
+        raise HTTPException(
+            status_code=400,
+            detail="start_date must be earlier than end_date.",
+        )
+
+    try:
+        data = fetch_stock_data(
+            ticker,
+            request.start_date.isoformat(),
+            request.end_date.isoformat(),
+        )
+
+        records = [
+            {
+                "date": timestamp.isoformat(),
+                "open": safe_float(row["Open"]),
+                "high": safe_float(row["High"]),
+                "low": safe_float(row["Low"]),
+                "close": safe_float(row["Close"]),
+                "volume": safe_float(row["Volume"]),
+            }
+            for timestamp, row in data.iterrows()
+        ]
+
+        return {"ticker": ticker, "count": len(records), "data": records}
+
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Market data failed: {str(exc)}",
+        ) from exc
+
+
 @app.post("/api/backtest")
 def backtest_endpoint(request: BacktestRequest):
     ticker = request.ticker.strip().upper()
