@@ -179,7 +179,7 @@ def backtest_endpoint(request: BacktestRequest):
             params=params,
         )
 
-        equity = engine.equity_curve()
+        equity = stats["_equity_curve"]["Equity"]
 
         equity_curve = [
             {

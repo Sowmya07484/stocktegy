@@ -5,7 +5,11 @@ import type { BacktestResponse, EquityPoint, MarketDataResponse, NewsEvidence, O
 
 type Num = number | null;
 
-/** POST /api/backtest response as returned by app.py */
+/**
+ * POST /api/backtest response as returned by app.py. The backend renamed fields between
+ * versions (e.g. return_percent → return_pct, number_of_trades → total_trades), so both
+ * spellings are accepted.
+ */
 export interface BackendBacktestResponse {
   ticker: string;
   strategy: BacktestResponse["strategy"];
@@ -13,25 +17,38 @@ export interface BackendBacktestResponse {
   end_date: string;
   initial_capital: number;
   final_equity: Num;
-  net_profit: Num;
-  return_percent: Num;
-  buy_hold_return_percent: Num;
-  max_drawdown_percent: Num; // backtesting.py reports this as a negative number
-  win_rate_percent: Num; // null when there were no trades
-  number_of_trades: number;
-  sharpe_ratio?: Num; // not sent yet
+  return_pct?: Num;
+  return_percent?: Num;
+  buy_hold_return_pct?: Num;
+  buy_hold_return_percent?: Num;
+  max_drawdown_pct?: Num; // backtesting.py reports this as a negative number
+  max_drawdown_percent?: Num;
+  win_rate_pct?: Num; // null when there were no trades
+  win_rate_percent?: Num;
+  total_trades?: number;
+  number_of_trades?: number;
+  sharpe_ratio?: Num;
   news?: NewsEvidence[]; // not sent yet
   equity_curve: { date: string; equity: Num }[];
-  trades: {
-    entry_date: string;
-    exit_date: string | null;
-    entry_price: Num;
-    exit_price: Num;
-    size: number;
-    profit_loss: Num;
-    return_percent: Num;
-  }[];
+  trades: BackendTrade[];
 }
+
+interface BackendTrade {
+  entry_time?: string;
+  entry_date?: string;
+  exit_time?: string | null;
+  exit_date?: string | null;
+  entry_price: Num;
+  exit_price: Num;
+  size: number;
+  pnl?: Num;
+  profit_loss?: Num;
+  return_pct?: Num;
+  return_percent?: Num;
+}
+
+/** str(pd.NaT) arrives as "NaT" for trades still open at the end of the backtest */
+const dateOrNull = (d: string | null | undefined) => (d && d !== "NaT" && d !== "None" ? d : null);
 
 /** POST /api/market-data response as returned by app.py */
 export interface BackendMarketDataResponse {
@@ -53,14 +70,14 @@ export function fromBackendBacktest(raw: BackendBacktestResponse | BacktestRespo
     });
 
   const trades: Trade[] = raw.trades.map((t) => ({
-    entry_date: t.entry_date,
-    exit_date: t.exit_date,
+    entry_date: dateOrNull(t.entry_time ?? t.entry_date) ?? "",
+    exit_date: dateOrNull(t.exit_time ?? t.exit_date),
     side: t.size < 0 ? "short" : "long", // backtesting.py marks shorts with a negative size
     size: Math.abs(t.size),
     entry_price: t.entry_price ?? 0,
     exit_price: t.exit_price,
-    pnl: t.profit_loss ?? 0,
-    return_pct: t.return_percent ?? 0,
+    pnl: t.pnl ?? t.profit_loss ?? 0,
+    return_pct: t.return_pct ?? t.return_percent ?? 0,
   }));
 
   return {
@@ -69,16 +86,17 @@ export function fromBackendBacktest(raw: BackendBacktestResponse | BacktestRespo
     metrics: {
       initial_capital: raw.initial_capital,
       final_value: raw.final_equity ?? equity_curve.at(-1)?.equity ?? raw.initial_capital,
-      total_return_pct: raw.return_percent ?? 0,
-      max_drawdown_pct: -Math.abs(raw.max_drawdown_percent ?? 0),
+      total_return_pct: raw.return_pct ?? raw.return_percent ?? 0,
+      max_drawdown_pct: -Math.abs(raw.max_drawdown_pct ?? raw.max_drawdown_percent ?? 0),
       sharpe_ratio: raw.sharpe_ratio ?? null,
-      win_rate_pct: raw.win_rate_percent ?? null,
-      num_trades: raw.number_of_trades,
-      buy_hold_return_pct: raw.buy_hold_return_percent ?? null,
+      win_rate_pct: raw.win_rate_pct ?? raw.win_rate_percent ?? null,
+      num_trades: raw.total_trades ?? raw.number_of_trades ?? trades.length,
+      buy_hold_return_pct: raw.buy_hold_return_pct ?? raw.buy_hold_return_percent ?? null,
     },
     equity_curve,
     trades,
-    news: Array.isArray(raw.news) ? raw.news : [],  };
+    news: Array.isArray(raw.news) ? raw.news : [],
+  };
 }
 
 export function fromBackendMarketData(raw: BackendMarketDataResponse): MarketDataResponse {

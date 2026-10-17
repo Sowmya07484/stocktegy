@@ -147,18 +147,27 @@ export const api = {
     start: string,
     end: string,
     signal?: AbortSignal,
-  ): Promise<MarketDataResponse> =>
-    fromBackendMarketData(
-      await request<BackendMarketDataResponse>("/api/market-data", {
-        method: "POST",
-        body: JSON.stringify({
-          ticker,
-          start_date: start,
-          end_date: end,
+  ): Promise<MarketDataResponse> => {
+    try {
+      return fromBackendMarketData(
+        await request<BackendMarketDataResponse>("/api/market-data", {
+          method: "POST",
+          body: JSON.stringify({
+            ticker,
+            start_date: start,
+            end_date: end,
+          }),
+          signal,
         }),
-        signal,
-      }),
-    ),
+      );
+    } catch (err) {
+      // the backend may not expose this endpoint; say so instead of a bare "Not Found"
+      if (err instanceof ApiError && (err.status === 404 || err.status === 405)) {
+        throw new ApiError("Price data isn't available from the backend yet (no /api/market-data endpoint).", err.status);
+      }
+      throw err;
+    }
+  },
 
   runBacktest: async (
     payload: BacktestRequest,
