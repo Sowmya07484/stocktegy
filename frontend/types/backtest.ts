@@ -58,6 +58,8 @@ export interface Trade {
   exit_price: number | null;
   pnl: number;
   return_pct: number;
+  /** still open on the end date, so closed at the last close rather than by an exit signal */
+  closed_at_end?: boolean;
 }
 
 export type SentimentLabel = "positive" | "neutral" | "negative";

@@ -1,9 +1,27 @@
 
 import pandas as pd
 from backtesting import Backtest, Strategy
+from backtesting.lib import crossover
 
 
-class MovingAverageCrossover(Strategy):
+class GatedStrategy(Strategy):
+    """Computes indicators on warm-up bars but only trades from `trade_from` onwards.
+
+    The API fetches extra history before the requested start date so indicators such as a
+    50-day SMA are already valid on day one; this gate stops trades inside that warm-up window.
+    """
+
+    trade_from = None  # pd.Timestamp; None trades from the first bar
+    trade_until = None  # pd.Timestamp; no new signals on or after this bar
+
+    def can_trade(self):
+        now = self.data.index[-1]
+        if self.trade_from is not None and now < self.trade_from:
+            return False
+        return self.trade_until is None or now < self.trade_until
+
+
+class MovingAverageCrossover(GatedStrategy):
     short_window = 20
     long_window = 50
 
@@ -19,15 +37,18 @@ class MovingAverageCrossover(Strategy):
         )
 
     def next(self):
-        if self.short_ma[-1] > self.long_ma[-1]:
+        if not self.can_trade():
+            return
+        # enter only on an actual cross, not because the short SMA already sits above the long one
+        if crossover(self.short_ma, self.long_ma):
             if not self.position:
                 self.buy()
-        elif self.short_ma[-1] < self.long_ma[-1]:
+        elif crossover(self.long_ma, self.short_ma):
             if self.position:
                 self.position.close()
 
 
-class RSIMeanReversion(Strategy):
+class RSIMeanReversion(GatedStrategy):
     rsi_period = 14
     oversold = 30
     recovery = 50
@@ -60,17 +81,21 @@ class RSIMeanReversion(Strategy):
         self.rsi = self.I(calculate_rsi, close)
 
     def next(self):
+        if not self.can_trade():
+            return
         if not self.position and self.rsi[-1] < self.oversold:
             self.buy()
         elif self.position and self.rsi[-1] >= self.recovery:
             self.position.close()
 
 
-class BuyAndHold(Strategy):
+class BuyAndHold(GatedStrategy):
     def init(self):
         self.has_bought = False
 
     def next(self):
+        if not self.can_trade():
+            return
         if not self.has_bought:
             self.buy()
             self.has_bought = True
@@ -83,8 +108,11 @@ STRATEGIES = {
 }
 
 
-def run_backtest(data, strategy=MovingAverageCrossover, cash=100000, params=None):
-    """Run a strategy against historical OHLCV data using selected parameters."""
+def run_backtest(data, strategy=MovingAverageCrossover, cash=100000, params=None, trade_from=None):
+    """Run a strategy against historical OHLCV data using selected parameters.
+
+    Bars before `trade_from` are used only to warm up indicators; no trades happen there.
+    """
     required = {"Open", "High", "Low", "Close", "Volume"}
 
     if not isinstance(data, pd.DataFrame):
@@ -143,13 +171,40 @@ def run_backtest(data, strategy=MovingAverageCrossover, cash=100000, params=None
     else:
         strategy_kwargs = {}
 
+    if trade_from is not None:
+        strategy_kwargs["trade_from"] = pd.Timestamp(trade_from)
+
+    # backtesting.py force-closes open trades at the last bar's *open*, which drops the final
+    # day's move. Pad one synthetic bar priced at the last close so that close-out fills at the
+    # last close instead; no new signals are taken on the last real bar or the pad.
+    last_time = data.index[-1]
+    pad_time = last_time + pd.Timedelta(days=1)
+    last_close = data["Close"].iloc[-1]
+    pad = pd.DataFrame(
+        {"Open": last_close, "High": last_close, "Low": last_close, "Close": last_close, "Volume": 0},
+        index=pd.DatetimeIndex([pad_time], name=data.index.name),
+    )
+    padded = pd.concat([data[list(required)], pad])
+    strategy_kwargs["trade_until"] = last_time
+
     engine = Backtest(
-        data,
+        padded,
         strategy,
         cash=cash,
         commission=0.001,
         exclusive_orders=True,
+        # close positions still open on the last bar so they count in trades and win rate
+        finalize_trades=True,
     )
 
     stats = engine.run(**strategy_kwargs)
+
+    # Drop the pad bar again and flag the trades it closed as end-of-period close-outs.
+    stats["_equity_curve"] = stats["_equity_curve"].loc[:last_time]
+    trades = stats["_trades"]
+    if trades is not None and not trades.empty:
+        trades = trades.copy()
+        trades["ClosedAtEnd"] = trades["ExitTime"] == pad_time
+        trades.loc[trades["ClosedAtEnd"], "ExitTime"] = last_time
+        stats["_trades"] = trades
     return stats, engine

@@ -148,7 +148,17 @@ function TradesTable({ trades }: { trades: Trade[] }) {
                 style={{ animationDelay: `${Math.min(i, 12) * 50}ms` }}
               >
                 <td className={`${td} whitespace-nowrap text-slate-300`}>{formatDate(t.entry_date)}</td>
-                <td className={`${td} whitespace-nowrap text-slate-300`}>{t.exit_date ? formatDate(t.exit_date) : <span className="text-warn">Open</span>}</td>
+                <td className={`${td} whitespace-nowrap text-slate-300`}>
+                  {t.exit_date ? formatDate(t.exit_date) : <span className="text-warn">Open</span>}
+                  {t.closed_at_end && (
+                    <span
+                      title="Still open on the end date, so valued at the last close. Not an exit signal."
+                      className="ml-2 rounded-md border border-line bg-white/5 px-1.5 py-0.5 font-sans text-[10px] text-muted"
+                    >
+                      closed at end
+                    </span>
+                  )}
+                </td>
                 <td className={td}>
                   <span className="rounded-md border border-line bg-white/5 px-1.5 py-0.5 text-[10px] tracking-wider text-slate-300 uppercase">{t.side}</span>
                 </td>
@@ -182,7 +192,7 @@ export function EvidenceCard({
     <Card className="overflow-hidden">
       <CardHeader
         title={tab === "news" ? "Laya news evidence" : "Trade log"}
-        subtitle={tab === "news" ? "Headlines scored by Laya sentiment over the backtest window" : "Entry and exit of every position the strategy took"}
+        subtitle={tab === "news" ? "Headlines scored by Laya sentiment over the backtest window" : "Fill dates and prices: signals on a close fill at the next day's open (dividend-adjusted)"}
         right={
           newsSupported ? (
             <Segmented<Tab>

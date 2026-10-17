@@ -140,7 +140,7 @@ function buildCards(m: BacktestMetrics | null): CardSpec[] {
       fmt: signedCurrency,
       valueTone: toneOf(pnl),
     },
-    { label: "Total Return", icon: icons.trend, value: m ? formatPct(m.total_return_pct) : "—", num: m?.total_return_pct, fmt: (n: number) => formatPct(n), valueTone: toneOf(m?.total_return_pct), sub: m?.buy_hold_return_pct != null ? `Buy & hold ${formatPct(m.buy_hold_return_pct)}` : undefined },
+    { label: "Total Return", icon: icons.trend, value: m ? formatPct(m.total_return_pct) : "—", num: m?.total_return_pct, fmt: (n: number) => formatPct(n), valueTone: toneOf(m?.total_return_pct), sub: m?.buy_hold_return_pct != null ? `Buy & hold ${formatPct(m.buy_hold_return_pct)} incl. dividends` : undefined },
     {
       label: "Max Drawdown",
       icon: icons.drop,
@@ -157,7 +157,8 @@ function buildCards(m: BacktestMetrics | null): CardSpec[] {
       num: m?.win_rate_pct ?? undefined,
       fmt: (n: number) => formatPct(n, false),
       valueTone: winTone,
-      sub: m && m.win_rate_pct == null ? "No closed trades" : undefined,
+      // a percentage alone hides the sample size: 100% of 1 trade means little
+      sub: !m ? undefined : m.win_rate_pct == null || m.num_trades === 0 ? "No closed trades" : `${Math.round((m.win_rate_pct / 100) * m.num_trades)} of ${m.num_trades} trades won`,
     },
     { label: "Number of Trades", icon: icons.trades, value: m ? String(m.num_trades) : "—", num: m?.num_trades, fmt: (n: number) => String(Math.round(n)), sub: m ? "Round trips" : undefined },
   ];

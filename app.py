@@ -1,7 +1,9 @@
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 import math
+
+import pandas as pd
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -38,6 +40,18 @@ class BacktestRequest(BaseModel):
     strategy: str
     initial_capital: float = Field(default=100000, gt=0)
     params: dict[str, Any] = Field(default_factory=dict)
+
+
+def warmup_calendar_days(strategy: str, params: dict) -> int:
+    """Calendar days of extra history so indicators are valid on the first requested day."""
+    if strategy == "ma_crossover":
+        bars = params["long_window"]
+    elif strategy == "rsi_mean_reversion":
+        bars = params["rsi_period"] * 4  # Wilder's EWM needs a few periods to settle
+    else:
+        bars = 1  # backtesting.py never trades on the very first bar it sees
+    # ~250 trading days per 365 calendar days, plus slack for holidays
+    return int(bars * 1.5) + 10
 
 
 def safe_float(value):
@@ -165,21 +179,44 @@ def backtest_endpoint(request: BacktestRequest):
         else:
             params = {}
 
-        # Use the actual function defined in market_data.py.
+        # Fetch extra history before start_date so indicators are warmed up on day one;
+        # the strategies only trade from start_date (see GatedStrategy in backtest.py).
+        fetch_start = request.start_date - timedelta(
+            days=warmup_calendar_days(request.strategy, params)
+        )
         data = fetch_stock_data(
             ticker,
-            request.start_date.isoformat(),
+            fetch_start.isoformat(),
             request.end_date.isoformat(),
         )
+
+        start_ts = pd.Timestamp(request.start_date)
+        in_range = data[data.index >= start_ts]
+        if len(in_range) < 2:
+            raise ValueError("Not enough trading days in the selected date range.")
 
         stats, engine = run_backtest(
             data,
             strategy=strategy_class,
             cash=request.initial_capital,
             params=params,
+            trade_from=start_ts,
         )
 
+        # Buy & hold over exactly the requested range. backtesting.py's own figure starts
+        # after indicator warm-up, which overstated it (e.g. BSE.NS 2025: +103.9% vs +43.2%).
+        closes = in_range["Close"]
+        buy_hold_return_pct = (closes.iloc[-1] / closes.iloc[0] - 1) * 100
+
+        # Report the curve for the requested dates only (warm-up bars are flat at cash).
         equity = stats["_equity_curve"]["Equity"]
+        equity = equity[equity.index >= start_ts]
+
+        # Sharpe on the requested range; stats["Sharpe Ratio"] would include the flat warm-up.
+        daily = equity.pct_change().dropna()
+        sharpe_ratio = (
+            daily.mean() / daily.std() * math.sqrt(252) if daily.std() > 0 else None
+        )
 
         equity_curve = [
             {
@@ -217,6 +254,8 @@ def backtest_endpoint(request: BacktestRequest):
                         if safe_float(trade.get("ReturnPct")) is not None
                         else None
                     ),
+                    # still open on the end date, so closed at the last close rather than by a signal
+                    "closed_at_end": bool(trade.get("ClosedAtEnd", False)),
                 })
 
         return {
@@ -228,10 +267,8 @@ def backtest_endpoint(request: BacktestRequest):
             "initial_capital": request.initial_capital,
             "final_equity": safe_float(stats.get("Equity Final [$]")),
             "return_pct": safe_float(stats.get("Return [%]")),
-            "buy_hold_return_pct": safe_float(
-                stats.get("Buy & Hold Return [%]")
-            ),
-            "sharpe_ratio": safe_float(stats.get("Sharpe Ratio")),
+            "buy_hold_return_pct": safe_float(buy_hold_return_pct),
+            "sharpe_ratio": safe_float(sharpe_ratio),
             "max_drawdown_pct": safe_float(
                 stats.get("Max. Drawdown [%]")
             ),

@@ -45,6 +45,7 @@ interface BackendTrade {
   profit_loss?: Num;
   return_pct?: Num;
   return_percent?: Num;
+  closed_at_end?: boolean;
 }
 
 /** str(pd.NaT) arrives as "NaT" for trades still open at the end of the backtest */
@@ -78,6 +79,7 @@ export function fromBackendBacktest(raw: BackendBacktestResponse | BacktestRespo
     exit_price: t.exit_price,
     pnl: t.pnl ?? t.profit_loss ?? 0,
     return_pct: t.return_pct ?? t.return_percent ?? 0,
+    closed_at_end: t.closed_at_end ?? false,
   }));
 
   return {
