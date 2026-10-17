@@ -132,8 +132,12 @@ function TradesTable({ trades }: { trades: Trade[] }) {
             <th className={th}>Exit</th>
             <th className={th}>Side</th>
             <th className={`${th} text-right`}>Size</th>
-            <th className={`${th} text-right`}>Entry px</th>
-            <th className={`${th} text-right`}>Exit px</th>
+            <th className={`${th} text-right`} title={ADJ_NOTE}>
+              <span className="cursor-help border-b border-dotted border-muted/60">Entry px*</span>
+            </th>
+            <th className={`${th} text-right`} title={ADJ_NOTE}>
+              <span className="cursor-help border-b border-dotted border-muted/60">Exit px*</span>
+            </th>
             <th className={`${th} text-right`}>P&amp;L</th>
             <th className={`${th} text-right`}>Return</th>
           </tr>
@@ -175,6 +179,9 @@ function TradesTable({ trades }: { trades: Trade[] }) {
     </div>
   );
 }
+
+// adjusted prices subtract every later dividend, so they sit below the prices quoted in the news
+const ADJ_NOTE = "Dividend-adjusted price: every later dividend is subtracted, so it reads lower than the price quoted at the time.";
 
 export function EvidenceCard({
   news,
