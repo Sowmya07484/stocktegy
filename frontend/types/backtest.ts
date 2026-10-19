@@ -69,9 +69,22 @@ export interface NewsEvidence {
   source: string;
   url: string | null;
   published_at: string;
-  sentiment_score: number;
-  sentiment_label: SentimentLabel;
+  /** P(positive) - P(negative) from Laya, -1..1; null when Laya couldn't score it */
+  sentiment_score: number | null;
+  sentiment_label: SentimentLabel | null;
   summary?: string;
+}
+
+export interface NewsResponse {
+  ticker: string;
+  query: string;
+  /** the window actually searched (GNews free plan: last 30 days only) */
+  from: string;
+  to: string;
+  /** false when the backtest range is older than GNews allows, so these are the latest headlines */
+  in_backtest_range: boolean;
+  articles: NewsEvidence[];
+  sentiment_error: string | null;
 }
 
 export interface BacktestResponse {

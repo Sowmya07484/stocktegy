@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { formatDate, formatDateTime, formatPct, formatPrice } from "@/lib/format";
-import type { NewsEvidence, SentimentLabel, Trade } from "@/types/backtest";
-import { Card, CardHeader, EmptyState, Segmented } from "./ui";
+import type { NewsEvidence, NewsResponse, SentimentLabel, Trade } from "@/types/backtest";
+import { Card, CardHeader, EmptyState, Segmented, Spinner } from "./ui";
 
 type Tab = "news" | "trades";
 type SentimentFilter = "all" | SentimentLabel;
@@ -45,7 +45,7 @@ function NewsTable({ news }: { news: NewsEvidence[] }) {
 
   const counts = useMemo(() => {
     const c = { all: news.length, positive: 0, neutral: 0, negative: 0 };
-    news.forEach((n) => c[n.sentiment_label]++);
+    news.forEach((n) => n.sentiment_label && c[n.sentiment_label]++);
     return c;
   }, [news]);
 
@@ -110,7 +110,9 @@ function NewsTable({ news }: { news: NewsEvidence[] }) {
                     {n.summary && <p className="mt-0.5 line-clamp-2 text-xs text-muted">{n.summary}</p>}
                   </td>
                   <td className={`${td} text-xs whitespace-nowrap text-slate-300`}>{n.source}</td>
-                  <td className={td}><SentimentTag label={n.sentiment_label} score={n.sentiment_score} /></td>
+                  <td className={td}>
+                    {n.sentiment_label ? <SentimentTag label={n.sentiment_label} score={n.sentiment_score ?? 0} /> : <span className="text-xs text-muted">Not scored</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -183,40 +185,69 @@ function TradesTable({ trades }: { trades: Trade[] }) {
 // adjusted prices subtract every later dividend, so they sit below the prices quoted in the news
 const ADJ_NOTE = "Dividend-adjusted price: every later dividend is subtracted, so it reads lower than the price quoted at the time.";
 
+function newsSubtitle(meta: NewsResponse | null) {
+  if (!meta) return "Headlines about the company, each scored for sentiment by Laya";
+  const range = `${formatDate(meta.from)} – ${formatDate(meta.to)}`;
+  return meta.in_backtest_range
+    ? `GNews headlines for ${meta.query}, ${range}, scored by Laya`
+    : `Latest headlines for ${meta.query} (${range}). GNews's free plan only searches the last 30 days, so these aren't from the backtest window`;
+}
+
 export function EvidenceCard({
-  news,
+  newsMeta,
+  newsLoading,
+  newsError,
   trades,
-  newsSupported = true,
 }: {
-  news: NewsEvidence[] | null;
+  newsMeta: NewsResponse | null;
+  newsLoading: boolean;
+  newsError: string | null;
   trades: Trade[] | null;
-  /** false when the backend returned a result without news; the News tab is hidden. */
-  newsSupported?: boolean;
 }) {
-  const [picked, setPicked] = useState<Tab>("trades");
-  const tab: Tab = newsSupported ? picked : "trades";
+  const [tab, setPicked] = useState<Tab>("trades");
+  const news = newsMeta?.articles ?? null;
+
+  const newsBody = () => {
+    if (newsLoading) {
+      return (
+        <div className="flex items-center justify-center gap-3 py-16 text-sm text-muted">
+          <Spinner className="h-5 w-5" /> <span className="text-shimmer font-medium">Fetching headlines and scoring with Laya…</span>
+        </div>
+      );
+    }
+    if (newsError) return <EmptyState><span className="text-loss">News failed: {newsError}</span></EmptyState>;
+    if (!news) return <EmptyState>News evidence appears after a backtest run.</EmptyState>;
+    if (!news.length) return <EmptyState>GNews returned no headlines for {newsMeta?.query} in this window.</EmptyState>;
+    return (
+      <>
+        {newsMeta?.sentiment_error && (
+          <p className="border-b border-line bg-warn/10 px-5 py-2 text-xs text-warn sm:px-6">{newsMeta.sentiment_error}. Headlines are shown unscored.</p>
+        )}
+        <NewsTable news={news} />
+      </>
+    );
+  };
+
   return (
     <Card className="overflow-hidden">
       <CardHeader
         title={tab === "news" ? "Laya news evidence" : "Trade log"}
-        subtitle={tab === "news" ? "Headlines scored by Laya sentiment over the backtest window" : "Fill dates and prices: signals on a close fill at the next day's open (dividend-adjusted)"}
+        subtitle={tab === "news" ? newsSubtitle(newsMeta) : "Fill dates and prices: signals on a close fill at the next day's open (dividend-adjusted)"}
         right={
-          newsSupported ? (
-            <Segmented<Tab>
-              ariaLabel="Evidence view"
-              value={tab}
-              onChange={setPicked}
-              options={[
-                { value: "trades", label: `Trades${trades ? ` · ${trades.length}` : ""}` },
-                { value: "news", label: `News${news ? ` · ${news.length}` : ""}` },
-              ]}
-            />
-          ) : undefined
+          <Segmented<Tab>
+            ariaLabel="Evidence view"
+            value={tab}
+            onChange={setPicked}
+            options={[
+              { value: "trades", label: `Trades${trades ? ` · ${trades.length}` : ""}` },
+              { value: "news", label: `News${news ? ` · ${news.length}` : ""}` },
+            ]}
+          />
         }
       />
       <div key={`${tab}-${news?.length ?? "x"}-${trades?.length ?? "x"}`} className="animate-fade-in">
         {tab === "news" ? (
-          news ? (news.length ? <NewsTable news={news} /> : <EmptyState>Laya returned no headlines for this window.</EmptyState>) : <EmptyState>News evidence appears after a backtest run.</EmptyState>
+          newsBody()
         ) : trades ? (
           <TradesTable trades={trades} />
         ) : (

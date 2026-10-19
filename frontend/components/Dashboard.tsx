@@ -7,7 +7,7 @@ import { EvidenceCard } from "@/components/EvidenceCard";
 import { KpiGrid } from "@/components/KpiGrid";
 import { TopNav } from "@/components/TopNav";
 import { Scramble } from "@/components/motion/Scramble";
-import { useBacktest, useMarketData } from "@/hooks/useBacktest";
+import { useBacktest, useMarketData, useNews } from "@/hooks/useBacktest";
 import { USE_SAMPLE_DATA } from "@/lib/config";
 import type { BacktestRequest, MaCrossoverParams, RsiMeanReversionParams } from "@/types/backtest";
 
@@ -50,6 +50,7 @@ function warmupStart(req: BacktestRequest): string {
 export function Dashboard({ initialTicker }: { initialTicker?: string }) {
   const backtest = useBacktest();
   const market = useMarketData();
+  const news = useNews();
   const [lastRequest, setLastRequest] = useState<BacktestRequest | null>(null);
   const [runId, setRunId] = useState(0);
 
@@ -58,6 +59,7 @@ export function Dashboard({ initialTicker }: { initialTicker?: string }) {
     setRunId((n) => n + 1);
     backtest.run(payload);
     market.run(payload.ticker, warmupStart(payload), payload.end_date);
+    news.run(payload.ticker, payload.start_date, payload.end_date);
   };
 
   const result = backtest.data;
@@ -123,7 +125,7 @@ export function Dashboard({ initialTicker }: { initialTicker?: string }) {
           priceError={market.error}
         />
 
-        <EvidenceCard news={result?.news ?? null} trades={result?.trades ?? null} newsSupported={result ? result.news !== null : true} />
+        <EvidenceCard newsMeta={news.data} newsLoading={news.isLoading} newsError={news.error} trades={result?.trades ?? null} />
 
         {result && <p className="eyebrow pt-2 text-center">Historical simulation. Not financial advice.</p>}
       </main>

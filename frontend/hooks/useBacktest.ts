@@ -13,6 +13,11 @@ const source = USE_SAMPLE_DATA ? sampleApi : api;
 export const useBacktest = () =>
   useApiRequest((payload: BacktestRequest, signal: AbortSignal) => source.runBacktest(payload, signal));
 
+export const useNews = () =>
+  useApiRequest((ticker: string, start: string, end: string, signal: AbortSignal) =>
+    source.news(ticker, start, end, signal),
+  );
+
 export const useMarketData = () =>
   useApiRequest((ticker: string, start: string, end: string, signal: AbortSignal) =>
     source.marketData(ticker, start, end, signal),

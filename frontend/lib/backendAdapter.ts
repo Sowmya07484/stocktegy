@@ -1,7 +1,7 @@
 // Translates the FastAPI backend's response shapes (app.py) into the types the UI renders.
 // Keeping this in one place means a backend field rename only touches this file.
 
-import type { BacktestResponse, EquityPoint, MarketDataResponse, NewsEvidence, OhlcvBar, Trade } from "@/types/backtest";
+import type { BacktestResponse, EquityPoint, MarketDataResponse, NewsEvidence, NewsResponse, OhlcvBar, SentimentLabel, Trade } from "@/types/backtest";
 
 type Num = number | null;
 
@@ -98,6 +98,39 @@ export function fromBackendBacktest(raw: BackendBacktestResponse | BacktestRespo
     equity_curve,
     trades,
     news: Array.isArray(raw.news) ? raw.news : [],
+  };
+}
+
+export interface BackendNewsResponse {
+  ticker: string;
+  query: string;
+  from: string;
+  to: string;
+  in_backtest_range: boolean;
+  articles: {
+    title: string;
+    summary: string | null;
+    url: string | null;
+    published_at: string | null;
+    source: string;
+    sentiment_label: SentimentLabel | null;
+    sentiment_score: Num;
+  }[];
+  sentiment_error: string | null;
+}
+
+export function fromBackendNews(raw: BackendNewsResponse): NewsResponse {
+  return {
+    ...raw,
+    articles: raw.articles.map((a) => ({
+      title: a.title,
+      source: a.source,
+      url: a.url,
+      published_at: a.published_at ?? "",
+      sentiment_label: a.sentiment_label,
+      sentiment_score: a.sentiment_score,
+      summary: a.summary ?? undefined,
+    })),
   };
 }
 

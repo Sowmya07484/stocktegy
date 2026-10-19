@@ -4,12 +4,15 @@ import type {
   BacktestResponse,
   HealthResponse,
   MarketDataResponse,
+  NewsResponse,
 } from "@/types/backtest";
 import {
   fromBackendBacktest,
   fromBackendMarketData,
+  fromBackendNews,
   type BackendBacktestResponse,
   type BackendMarketDataResponse,
+  type BackendNewsResponse,
 } from "./backendAdapter";
 
 const API_BASE = "";
@@ -168,6 +171,14 @@ export const api = {
       throw err;
     }
   },
+
+  news: (ticker: string, start: string, end: string, signal?: AbortSignal): Promise<NewsResponse> =>
+    request<BackendNewsResponse>("/api/news", {
+      method: "POST",
+      body: JSON.stringify({ ticker, start_date: start, end_date: end }),
+      signal,
+      timeoutMs: 60_000, // the first call may wait for Laya to load its model
+    }).then(fromBackendNews),
 
   runBacktest: async (
     payload: BacktestRequest,

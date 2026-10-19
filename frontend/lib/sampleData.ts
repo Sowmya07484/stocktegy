@@ -5,6 +5,7 @@ import type {
   EquityPoint,
   MarketDataResponse,
   NewsEvidence,
+  NewsResponse,
   OhlcvBar,
   Trade,
 } from "@/types/backtest";
@@ -349,7 +350,20 @@ export function runSampleBacktest(
     buy_hold_return_pct: buyHoldReturn,
   };
 
-  const news: NewsEvidence[] = bars.length
+  const news = sampleNews(bars);
+
+  return {
+    ticker: req.ticker,
+    strategy: req.strategy,
+    metrics,
+    equity_curve: equity,
+    trades,
+    news,
+  };
+}
+
+function sampleNews(bars: { date: string }[]): NewsEvidence[] {
+  return bars.length
     ? SAMPLE_HEADLINES.map((headline, index) => ({
         ...headline,
         published_at: `${
@@ -362,15 +376,6 @@ export function runSampleBacktest(
         }T09:30:00`,
       }))
     : [];
-
-  return {
-    ticker: req.ticker,
-    strategy: req.strategy,
-    metrics,
-    equity_curve: equity,
-    trades,
-    news,
-  };
 }
 
 function delay<T>(
@@ -405,6 +410,21 @@ export const sampleApi = {
     req: BacktestRequest,
     signal?: AbortSignal,
   ) => delay(900, () => runSampleBacktest(req), signal),
+
+  news: (ticker: string, start: string, end: string, signal?: AbortSignal) =>
+    delay<NewsResponse>(
+      600,
+      () => ({
+        ticker,
+        query: ticker,
+        from: start,
+        to: end,
+        in_backtest_range: true,
+        articles: sampleNews(sampleBars(ticker, start, end)),
+        sentiment_error: null,
+      }),
+      signal,
+    ),
 
   marketData: (
     ticker: string,

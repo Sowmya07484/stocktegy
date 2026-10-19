@@ -1,7 +1,10 @@
 
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Any
 import math
+import os
+import threading
 
 import pandas as pd
 
@@ -11,13 +14,33 @@ from pydantic import BaseModel, Field
 
 from backtest import STRATEGIES, run_backtest
 from market_data import fetch_stock_data
+from news_feed import NewsError, fetch_news
+import sentiment
 
+
+def load_dotenv(path: Path = Path(__file__).with_name(".env")) -> None:
+    """Minimal .env reader (KEY=value lines) so GNEWS_API_KEY stays out of the code."""
+    if not path.exists():
+        return
+    for line in path.read_text().splitlines():
+        key, sep, value = line.strip().partition("=")
+        if sep and key and not key.startswith("#"):
+            os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
+
+
+load_dotenv()
 
 app = FastAPI(
     title="QuantBack API",
-    description="Historical stock strategy backtesting API",
-    version="1.0.0",
+    description="Historical stock strategy backtesting and news sentiment API",
+    version="1.1.0",
 )
+
+
+@app.on_event("startup")
+def preload_laya():
+    # loading the Laya model takes a few seconds; do it off the request path
+    threading.Thread(target=sentiment.warm_up, daemon=True).start()
 
 app.add_middleware(
     CORSMiddleware,
@@ -147,6 +170,51 @@ def market_data(request: MarketDataRequest):
             status_code=500,
             detail=f"Market data failed: {str(exc)}",
         ) from exc
+
+
+@app.post("/api/news")
+def news_endpoint(request: MarketDataRequest):
+    """GNews headlines for the ticker, each scored by Laya.
+
+    The GNews free plan only searches the last 30 days, so for older backtests this returns the
+    latest headlines with in_backtest_range=False.
+    """
+    ticker = request.ticker.strip().upper()
+
+    if request.start_date >= request.end_date:
+        raise HTTPException(
+            status_code=400,
+            detail="start_date must be earlier than end_date.",
+        )
+
+    try:
+        result = fetch_news(ticker, request.start_date, request.end_date)
+    except NewsError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+    # headlines are still useful without scores, so a Laya failure isn't fatal
+    sentiment_error = None
+    try:
+        scores = sentiment.score_headlines([a["title"] for a in result["articles"]])
+    except Exception as exc:
+        scores = [None] * len(result["articles"])
+        sentiment_error = f"Laya sentiment failed: {exc}"
+
+    articles = []
+    for article, score in zip(result["articles"], scores):
+        articles.append({
+            **article,
+            "sentiment_label": score["label"] if score else None,
+            "sentiment_score": score["score"] if score else None,
+            "probabilities": score["probabilities"] if score else None,
+        })
+
+    return {
+        "ticker": ticker,
+        **result,
+        "articles": articles,
+        "sentiment_error": sentiment_error,
+    }
 
 
 @app.post("/api/backtest")
