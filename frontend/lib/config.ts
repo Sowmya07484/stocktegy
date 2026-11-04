@@ -1,4 +1,6 @@
-export const USE_SAMPLE_DATA = false;
+
+export const USE_SAMPLE_DATA =
+  process.env.NEXT_PUBLIC_USE_SAMPLE_DATA !== "false";
 
 export const BACKEND_ACCEPTS_PARAMS = true;
 

@@ -39,8 +39,8 @@ app = FastAPI(
 
 @app.on_event("startup")
 def preload_laya():
-    # Laya model loads only when sentiment is requested.
-    pass
+    # loading the Laya model takes a few seconds; do it off the request path
+    threading.Thread(target=sentiment.warm_up, daemon=True).start()
 
 app.add_middleware(
     CORSMiddleware,
