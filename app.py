@@ -193,12 +193,13 @@ def news_endpoint(request: MarketDataRequest):
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
     # headlines are still useful without scores, so a Laya failure isn't fatal
-    sentiment_error = None
-    try:
-        scores = sentiment.score_headlines([a["title"] for a in result["articles"]])
-    except Exception as exc:
-        scores = [None] * len(result["articles"])
-        sentiment_error = f"Laya sentiment failed: {exc}"
+    sentiment_error = sentiment.unavailable_reason()
+    scores = [None] * len(result["articles"])
+    if sentiment_error is None:
+        try:
+            scores = sentiment.score_headlines([a["title"] for a in result["articles"]])
+        except Exception as exc:
+            sentiment_error = f"Laya sentiment failed: {exc}"
 
     articles = []
     for article, score in zip(result["articles"], scores):
